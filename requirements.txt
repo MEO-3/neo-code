@@ -1,0 +1,6 @@
+PyQt6>=6.5.0
+QScintilla>=2.14.0
+jedi>=0.19.0
+pyflakes>=3.1.0
+ollama>=0.3.0
+markdown>=3.5

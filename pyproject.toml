@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "neo-code"
+version = "0.1.0"
+description = "NEO CODE - Educational Python IDE for STEM/Robotics students"
+readme = "README.md"
+license = {text = "GPL-3.0-or-later"}
+requires-python = ">=3.11"
+authors = [
+    {name = "NEO TRE Team"},
+]
+keywords = ["education", "stem", "robotics", "ide", "python", "turtle"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Education",
+    "Topic :: Software Development :: User Interfaces",
+]
+dependencies = [
+    "PyQt6>=6.5.0",
+    "QScintilla>=2.14.0",
+    "jedi>=0.19.0",
+    "pyflakes>=3.1.0",
+    "ollama>=0.3.0",
+    "markdown>=3.5",
+]
+
+[project.optional-dependencies]
+iot = [
+    "gpiozero>=2.0",
+    "smbus2>=0.4.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-qt>=4.2.0",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.6.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+neo-code = "neo_code.app:main"
+
+[project.gui-scripts]
+neo-code-gui = "neo_code.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
