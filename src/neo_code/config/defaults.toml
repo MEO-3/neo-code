@@ -1,0 +1,59 @@
+[application]
+name = "NEO CODE"
+version = "0.1.0"
+language = "vi"
+
+[editor]
+font_family = "JetBrains Mono"
+font_size = 14
+tab_width = 4
+auto_indent = true
+show_line_numbers = true
+highlight_current_line = true
+word_wrap = false
+theme = "neo_dark"
+
+[editor.analysis]
+debounce_ms = 500
+enable_pyflakes = true
+enable_jedi = true
+max_analysis_time_ms = 2000
+
+[execution]
+timeout_seconds = 30
+max_memory_mb = 256
+turtle_animation_speed = 6
+
+[ai]
+model = "qwen2.5-coder:1.5b"
+fallback_model = "tinyllama:1.1b"
+ollama_host = "http://localhost:11434"
+max_response_tokens = 512
+temperature = 0.3
+enable_auto_analysis = true
+significance_threshold = 3
+idle_timeout_seconds = 30
+hint_level = "guidance"
+
+[ai.context]
+max_history_turns = 6
+max_code_lines = 200
+
+[education]
+default_phase = 1
+curriculum_path = "curriculum_data"
+
+[hardware]
+enable_gpio = false
+gpio_library = "gpiozero"
+
+[storage]
+database_path = "~/.neo_code/neo_code.db"
+projects_path = "~/NEO_CODE_Projects"
+
+[ui]
+splitter_ratio = [60, 40]
+show_ai_panel = true
+show_output_panel = true
+window_width = 1280
+window_height = 720
