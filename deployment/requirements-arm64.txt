@@ -1,0 +1,7 @@
+# NEO CODE - Dependencies for ARM64 (2GB RAM)
+# PyQt6 and QScintilla: use system packages instead of pip
+# sudo apt install -y python3-pyqt6 python3-pyqt6.qsci
+jedi>=0.19.0
+pyflakes>=3.1.0
+ollama>=0.3.0
+markdown>=3.5
