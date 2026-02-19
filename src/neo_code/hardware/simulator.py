@@ -1,4 +1,6 @@
 """Software simulator for hardware when no physical board is available."""
+from __future__ import annotations
+
 
 import logging
 
@@ -7,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 class HardwareSimulator:
     """Simulates GPIO/hardware for development and testing without physical board."""
+
 
     def __init__(self):
         self._pins: dict[int, dict] = {}

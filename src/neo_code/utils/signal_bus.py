@@ -1,10 +1,13 @@
 """Application-wide signal bus for decoupled component communication."""
+from __future__ import annotations
+
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
 
 class SignalBus(QObject):
     """Centralized signal hub for cross-component communication.
+
 
     Allows components to communicate without direct references to each other.
 
@@ -38,6 +41,10 @@ class SignalBus(QObject):
     # Turtle signals
     draw_command = pyqtSignal(object)  # DrawCommand
     canvas_clear = pyqtSignal()
+
+    # Robot Arena signals
+    robot_command = pyqtSignal(object)  # RobotCommand
+    arena_clear = pyqtSignal()
 
     # Education signals
     phase_changed = pyqtSignal(int)

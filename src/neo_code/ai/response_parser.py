@@ -1,4 +1,6 @@
 """Parse LLM output into structured AIResponse objects."""
+from __future__ import annotations
+
 
 import re
 
@@ -12,6 +14,7 @@ def parse_response(
     is_encouragement: bool = False,
 ) -> AIResponse:
     """Parse raw LLM text into a structured AIResponse."""
+
     # Extract code suggestions
     code_suggestion = _extract_code_block(raw_text)
 

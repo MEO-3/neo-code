@@ -1,4 +1,6 @@
 """Code execution engine with subprocess sandboxing."""
+from __future__ import annotations
+
 
 import subprocess
 import sys
@@ -12,6 +14,7 @@ from neo_code.core.models import ExecutionResult
 
 class ExecutionWorker(QThread):
     """Executes student code in a sandboxed subprocess."""
+
 
     stdout_received = pyqtSignal(str)
     stderr_received = pyqtSignal(str)

@@ -1,4 +1,6 @@
 """Curriculum and lesson definitions."""
+from __future__ import annotations
+
 
 from dataclasses import dataclass, field
 
@@ -6,6 +8,7 @@ from dataclasses import dataclass, field
 @dataclass
 class Exercise:
     """A single exercise."""
+
     id: str
     title: str
     description: str

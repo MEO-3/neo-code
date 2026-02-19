@@ -1,4 +1,6 @@
 """Rule-based hint database for common beginner errors (fallback when LLM unavailable)."""
+from __future__ import annotations
+
 
 import re
 
@@ -135,6 +137,7 @@ ERROR_HINTS: list[tuple[str, str]] = [
 
 def get_rule_based_hint(error_text: str) -> str | None:
     """Get a hint for the given error text using pattern matching.
+
 
     Returns a helpful hint string, or None if no matching pattern is found.
     """

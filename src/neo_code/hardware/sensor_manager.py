@@ -1,4 +1,6 @@
 """Sensor management for reading various sensors (Phase 2)."""
+from __future__ import annotations
+
 
 import logging
 from typing import Optional
@@ -8,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 class SensorManager:
     """Manages sensor readings from connected hardware."""
+
 
     def __init__(self):
         self._sensors: dict[str, dict] = {}

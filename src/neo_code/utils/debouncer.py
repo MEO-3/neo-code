@@ -1,10 +1,13 @@
 """Debouncer utility for delaying signal emission until input stops."""
+from __future__ import annotations
+
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
 
 class Debouncer(QObject):
     """Delays signal emission until input stops for `delay_ms` milliseconds.
+
 
     Usage:
         debouncer = Debouncer(delay_ms=500)

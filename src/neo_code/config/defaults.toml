@@ -23,20 +23,27 @@ max_analysis_time_ms = 2000
 timeout_seconds = 30
 max_memory_mb = 256
 turtle_animation_speed = 6
+max_turtle_commands = 50000
+max_robot_commands = 10000
 
 [ai]
-model = "qwen2.5-coder:1.5b"
-fallback_model = "tinyllama:1.1b"
+provider = "gemini"  # "gemini", "ollama", or "offline"
+model = "gemini-2.5-flash"
+fallback_model = "gemini-2.0-flash"
+api_base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+api_key = ""  # Set via GEMINI_API_KEY env var or config
 ollama_host = "http://localhost:11434"
 max_response_tokens = 512
+auto_response_tokens = 200
 temperature = 0.3
 enable_auto_analysis = true
 significance_threshold = 3
 idle_timeout_seconds = 30
+auto_cooldown_seconds = 10
 hint_level = "guidance"
 
 [ai.context]
-max_history_turns = 6
+max_history_turns = 4
 max_code_lines = 200
 
 [education]
@@ -57,3 +64,9 @@ show_ai_panel = true
 show_output_panel = true
 window_width = 1280
 window_height = 720
+
+[robot_arena]
+default_field = "eco_equilibrium_2025"
+simulation_fps = 30
+show_trails = true
+ai_difficulty = "medium"

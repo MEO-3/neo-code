@@ -1,9 +1,19 @@
 """Application settings management using TOML configuration."""
+from __future__ import annotations
 
-import tomllib
+
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ModuleNotFoundError:
+        tomllib = None  # type: ignore[assignment]
+
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 _DEFAULTS_PATH = Path(__file__).parent / "defaults.toml"
@@ -48,6 +58,16 @@ class ExecutionSettings:
     timeout_seconds: int = 30
     max_memory_mb: int = 256
     turtle_animation_speed: int = 6
+    max_turtle_commands: int = 50000
+    max_robot_commands: int = 10000
+
+
+@dataclass
+class RobotArenaSettings:
+    default_field: str = "eco_equilibrium_2025"
+    simulation_fps: int = 30
+    show_trails: bool = True
+    ai_difficulty: str = "medium"
 
 
 @dataclass
@@ -58,14 +78,19 @@ class AIContextSettings:
 
 @dataclass
 class AISettings:
-    model: str = "qwen2.5-coder:1.5b"
-    fallback_model: str = "tinyllama:1.1b"
+    provider: str = "gemini"  # "gemini", "ollama", or "offline"
+    model: str = "gemini-2.5-flash"
+    fallback_model: str = "gemini-2.0-flash"
+    api_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_key: str = ""
     ollama_host: str = "http://localhost:11434"
     max_response_tokens: int = 512
+    auto_response_tokens: int = 200
     temperature: float = 0.3
     enable_auto_analysis: bool = True
     significance_threshold: int = 3
     idle_timeout_seconds: int = 30
+    auto_cooldown_seconds: int = 10
     hint_level: str = "guidance"
     context: AIContextSettings = field(default_factory=AIContextSettings)
 
@@ -110,6 +135,7 @@ class AppSettings:
     hardware: HardwareSettings = field(default_factory=HardwareSettings)
     storage: StorageSettings = field(default_factory=StorageSettings)
     ui: UISettings = field(default_factory=UISettings)
+    robot_arena: RobotArenaSettings = field(default_factory=RobotArenaSettings)
 
 
 def _apply_dict_to_dataclass(obj: Any, data: dict) -> None:
@@ -125,6 +151,10 @@ def _apply_dict_to_dataclass(obj: Any, data: dict) -> None:
 
 def load_settings() -> AppSettings:
     """Load settings from defaults.toml, merged with user config if exists."""
+    if tomllib is None:
+        # No TOML parser available, use defaults
+        return AppSettings()
+
     # Load defaults
     with open(_DEFAULTS_PATH, "rb") as f:
         defaults = tomllib.load(f)
@@ -143,7 +173,7 @@ def load_settings() -> AppSettings:
     settings.version = app_config.get("version", settings.version)
     settings.language = app_config.get("language", settings.language)
 
-    for section_name in ["editor", "execution", "ai", "education", "hardware", "storage", "ui"]:
+    for section_name in ["editor", "execution", "ai", "education", "hardware", "storage", "ui", "robot_arena"]:
         if section_name in config:
             _apply_dict_to_dataclass(getattr(settings, section_name), config[section_name])
 

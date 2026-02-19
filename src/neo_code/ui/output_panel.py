@@ -1,4 +1,6 @@
 """Output panel for displaying program stdout/stderr."""
+from __future__ import annotations
+
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QTextCharFormat
@@ -9,6 +11,7 @@ from neo_code.ui.theme import COLORS
 
 class OutputPanel(QWidget):
     """Panel displaying program execution output (stdout/stderr)."""
+
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)

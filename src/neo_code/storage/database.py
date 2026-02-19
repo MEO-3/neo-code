@@ -1,4 +1,6 @@
 """SQLite database for persistent storage."""
+from __future__ import annotations
+
 
 import sqlite3
 import json
@@ -17,6 +19,7 @@ def _ensure_db_dir() -> None:
 
 def get_connection() -> sqlite3.Connection:
     """Get a SQLite connection, creating the database if needed."""
+
     _ensure_db_dir()
     conn = sqlite3.connect(str(_DB_PATH))
     conn.row_factory = sqlite3.Row

@@ -1,8 +1,11 @@
 """Turtle command interpreter that translates turtle calls to DrawCommands."""
+from __future__ import annotations
+
 
 import re
 
 from neo_code.core.models import DrawCommand, DrawCommandType
+from neo_code.config.settings import get_settings
 
 
 # Map turtle method names to DrawCommandType
@@ -54,6 +57,7 @@ TURTLE_CALL_RE = re.compile(
 def parse_turtle_commands(code: str) -> list[DrawCommand]:
     """Parse turtle commands from Python code into DrawCommands.
 
+
     This is a static analysis approach - it extracts turtle calls from the code
     text. For runtime interception, use the execution engine's turtle redirect.
     """
@@ -104,9 +108,12 @@ def generate_turtle_wrapper_code() -> str:
     It serializes turtle calls to stdout in a parseable format so the
     IDE can render them on the custom canvas.
     """
-    return '''
+    max_cmds = get_settings().execution.max_turtle_commands
+    return f'''
 import sys
 import json
+
+_MAX_TURTLE_COMMANDS = {max_cmds}
 
 class _NeoTurtleProxy:
     """Proxy that captures turtle commands and prints them as JSON."""
@@ -116,10 +123,18 @@ class _NeoTurtleProxy:
         self._y = 0.0
         self._heading = 90.0
         self._pen_down = True
+        self._cmd_count = 0
 
     def _emit(self, cmd_type, *args):
-        data = {"cmd": cmd_type, "args": list(args)}
-        print(f"__NEO_TURTLE__:{json.dumps(data)}", flush=True)
+        self._cmd_count += 1
+        if self._cmd_count > _MAX_TURTLE_COMMANDS:
+            if self._cmd_count == _MAX_TURTLE_COMMANDS + 1:
+                print(f"__NEO_TURTLE_LIMIT__:{{_MAX_TURTLE_COMMANDS}}", flush=True)
+                print(f"Error: Qua nhieu lenh turtle! Gioi han {{_MAX_TURTLE_COMMANDS}} lenh. "
+                      f"Hay giam so lan lap lai.", file=sys.stderr, flush=True)
+            sys.exit(1)
+        data = {{"cmd": cmd_type, "args": list(args)}}
+        print(f"__NEO_TURTLE__:{{json.dumps(data)}}", flush=True)
 
     def forward(self, distance):
         self._emit("FORWARD", distance)

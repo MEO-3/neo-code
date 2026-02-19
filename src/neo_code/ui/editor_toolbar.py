@@ -1,4 +1,6 @@
 """Editor toolbar with Run, Stop, Save, Open, New buttons."""
+from __future__ import annotations
+
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QToolBar, QToolButton, QWidget
@@ -7,16 +9,21 @@ from PyQt6.QtWidgets import QToolBar, QToolButton, QWidget
 class EditorToolbar(QToolBar):
     """Toolbar for code editing actions."""
 
+
     run_clicked = pyqtSignal()
     stop_clicked = pyqtSignal()
     new_clicked = pyqtSignal()
     open_clicked = pyqtSignal()
     save_clicked = pyqtSignal()
     phase_clicked = pyqtSignal()
+    samples_clicked = pyqtSignal()
+    level_clicked = pyqtSignal()
+    language_changed = pyqtSignal(str)  # "vi" or "en"
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__("Editor Toolbar", parent)
         self.setMovable(False)
+        self._current_lang = "vi"
         self._setup_buttons()
 
     def _setup_buttons(self) -> None:
@@ -50,10 +57,40 @@ class EditorToolbar(QToolBar):
 
         self.addSeparator()
 
+        # Samples
+        self._samples_btn = self._make_button("Samples", "samplesButton")
+        self._samples_btn.clicked.connect(self.samples_clicked)
+        self.addWidget(self._samples_btn)
+
+        # Level selector
+        self._level_btn = self._make_button("Level", "levelButton")
+        self._level_btn.setToolTip("Chon cap do / Select level")
+        self._level_btn.clicked.connect(self.level_clicked)
+        self.addWidget(self._level_btn)
+
+        self.addSeparator()
+
+        # Language toggle
+        self._lang_btn = self._make_button("VI", "langButton")
+        self._lang_btn.setToolTip("Chuyển ngôn ngữ / Switch language")
+        self._lang_btn.clicked.connect(self._toggle_language)
+        self.addWidget(self._lang_btn)
+
+        self.addSeparator()
+
         # Phase selector
         self._phase_btn = self._make_button("Phase 1: Turtle", "phaseButton")
         self._phase_btn.clicked.connect(self.phase_clicked)
         self.addWidget(self._phase_btn)
+
+    def _toggle_language(self) -> None:
+        if self._current_lang == "vi":
+            self._current_lang = "en"
+            self._lang_btn.setText("EN")
+        else:
+            self._current_lang = "vi"
+            self._lang_btn.setText("VI")
+        self.language_changed.emit(self._current_lang)
 
     def _make_button(self, text: str, object_name: str) -> QToolButton:
         btn = QToolButton(self)
@@ -69,3 +106,7 @@ class EditorToolbar(QToolBar):
     def set_phase_text(self, text: str) -> None:
         """Update the phase button text."""
         self._phase_btn.setText(text)
+
+    def set_level_text(self, text: str) -> None:
+        """Update the level button text."""
+        self._level_btn.setText(text)

@@ -1,4 +1,6 @@
 """Conversation history management for the AI assistant."""
+from __future__ import annotations
+
 
 from dataclasses import dataclass, field
 from typing import Optional
@@ -9,6 +11,7 @@ from neo_code.config.settings import get_settings
 @dataclass
 class ChatTurn:
     """A single turn in the conversation."""
+
     role: str  # "user" or "assistant"
     content: str
 

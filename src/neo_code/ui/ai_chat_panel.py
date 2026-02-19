@@ -1,11 +1,13 @@
 """AI Chat Panel for displaying assistant responses."""
+from __future__ import annotations
 
 import markdown
 
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTextBrowser, QScrollArea, QFrame,
+    QSizePolicy,
 )
 
 from neo_code.core.models import AIResponse, HintLevel
@@ -17,6 +19,9 @@ class ChatMessage(QFrame):
 
     def __init__(self, content: str, is_ai: bool = True, parent: QWidget | None = None):
         super().__init__(parent)
+        self._content = content
+        self._is_ai = is_ai
+        self._browser: QTextBrowser | None = None
         self._setup_ui(content, is_ai)
 
     def _setup_ui(self, content: str, is_ai: bool) -> None:
@@ -45,50 +50,77 @@ class ChatMessage(QFrame):
         layout.addWidget(role)
 
         # Content (markdown rendered)
-        html_content = markdown.markdown(
-            content,
-            extensions=["fenced_code", "codehilite", "tables"],
-        )
+        styled_html = self._render_markdown(content)
 
-        # Style the rendered HTML
-        styled_html = f"""
-        <style>
-            body {{ color: {COLORS['text_primary']}; font-size: 13px; }}
-            code {{
-                background-color: {COLORS['bg_tertiary']};
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-family: "JetBrains Mono", monospace;
-                font-size: 12px;
-            }}
-            pre {{
-                background-color: {COLORS['bg_secondary']};
-                padding: 10px;
-                border-radius: 6px;
-                font-family: "JetBrains Mono", monospace;
-                font-size: 12px;
-            }}
-            a {{ color: {COLORS['accent']}; }}
-        </style>
-        {html_content}
-        """
-
-        content_browser = QTextBrowser(self)
-        content_browser.setOpenExternalLinks(False)
-        content_browser.setHtml(styled_html)
-        content_browser.setStyleSheet(f"""
+        self._browser = QTextBrowser(self)
+        self._browser.setOpenExternalLinks(False)
+        self._browser.setHtml(styled_html)
+        self._browser.setStyleSheet(f"""
             QTextBrowser {{
                 background-color: transparent;
                 border: none;
                 padding: 0px;
             }}
         """)
-        # Auto-resize based on content
-        content_browser.document().setDocumentMargin(0)
-        doc_height = content_browser.document().size().height()
-        content_browser.setFixedHeight(int(doc_height) + 10)
+        self._browser.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._browser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self._browser.document().setDocumentMargin(2)
 
-        layout.addWidget(content_browser)
+        # Connect document size change to auto-resize
+        self._browser.document().documentLayout().documentSizeChanged.connect(
+            self._adjust_browser_height
+        )
+
+        layout.addWidget(self._browser)
+
+        # Trigger initial height adjustment after layout
+        QTimer.singleShot(0, self._adjust_browser_height)
+
+    def _adjust_browser_height(self) -> None:
+        """Adjust browser height to fit content."""
+        if self._browser is None:
+            return
+        doc_height = self._browser.document().size().height()
+        self._browser.setMinimumHeight(int(doc_height) + 4)
+        self._browser.setMaximumHeight(int(doc_height) + 4)
+
+    def _render_markdown(self, content: str) -> str:
+        """Render markdown content to styled HTML."""
+        html_content = markdown.markdown(
+            content,
+            extensions=["fenced_code", "codehilite", "tables"],
+        )
+        return f"""
+        <style>
+            body {{ color: {COLORS['text_primary']}; font-size: 13px;
+                   font-family: "Segoe UI", "Noto Sans", sans-serif; }}
+            code {{
+                background-color: {COLORS['bg_tertiary']};
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-family: "JetBrains Mono", "Fira Code", monospace;
+                font-size: 12px;
+            }}
+            pre {{
+                background-color: {COLORS['bg_secondary']};
+                padding: 10px;
+                border-radius: 6px;
+                font-family: "JetBrains Mono", "Fira Code", monospace;
+                font-size: 12px;
+            }}
+            p {{ margin: 4px 0; }}
+            a {{ color: {COLORS['accent']}; }}
+        </style>
+        {html_content}
+        """
+
+    def update_content(self, content: str) -> None:
+        """Update the message content (for streaming)."""
+        self._content = content
+        if self._browser:
+            self._browser.setHtml(self._render_markdown(content))
+            QTimer.singleShot(0, self._adjust_browser_height)
 
 
 class AIChatPanel(QWidget):
@@ -97,6 +129,7 @@ class AIChatPanel(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._messages: list[ChatMessage] = []
+        self._streaming_content: str = ""
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -119,12 +152,14 @@ class AIChatPanel(QWidget):
         layout.addWidget(header)
 
         # Thinking indicator
-        self._thinking_label = QLabel("Thinking...")
+        self._thinking_label = QLabel("NEO TRE is thinking...")
         self._thinking_label.setStyleSheet(f"""
             QLabel {{
-                color: {COLORS['text_dim']};
+                color: {COLORS['warning']};
+                background-color: {COLORS['bg_secondary']};
                 padding: 8px 12px;
                 font-style: italic;
+                font-size: 12px;
             }}
         """)
         self._thinking_label.hide()
@@ -143,7 +178,7 @@ class AIChatPanel(QWidget):
 
         self._messages_container = QWidget()
         self._messages_layout = QVBoxLayout(self._messages_container)
-        self._messages_layout.setContentsMargins(0, 4, 0, 4)
+        self._messages_layout.setContentsMargins(4, 4, 4, 4)
         self._messages_layout.setSpacing(8)
         self._messages_layout.addStretch()
 
@@ -197,13 +232,19 @@ class AIChatPanel(QWidget):
         """Hide the thinking indicator."""
         self._thinking_label.hide()
 
+    def start_streaming_response(self) -> None:
+        """Begin a new streaming AI response."""
+        self._streaming_content = ""
+        msg = ChatMessage("...", is_ai=True, parent=self._messages_container)
+        self._messages_layout.insertWidget(self._messages_layout.count() - 1, msg)
+        self._messages.append(msg)
+
     def append_response_chunk(self, chunk: str) -> None:
-        """Append a streaming response chunk (for incremental display)."""
-        # For streaming, we update the last AI message or create a new one
-        if self._messages and isinstance(self._messages[-1], ChatMessage):
-            # In a production version, we'd update the last message content
-            # For now, we'll accumulate and display at once
-            pass
+        """Append a streaming response chunk."""
+        self._streaming_content += chunk
+        if self._messages:
+            self._messages[-1].update_content(self._streaming_content)
+            self._scroll_to_bottom()
 
     def clear_messages(self) -> None:
         """Clear all messages."""
@@ -212,6 +253,9 @@ class AIChatPanel(QWidget):
         self._messages.clear()
 
     def _scroll_to_bottom(self) -> None:
-        """Scroll to the bottom of the chat."""
+        """Scroll to the bottom of the chat (deferred to allow layout update)."""
+        QTimer.singleShot(50, self._do_scroll_to_bottom)
+
+    def _do_scroll_to_bottom(self) -> None:
         vbar = self._scroll.verticalScrollBar()
         vbar.setValue(vbar.maximum())

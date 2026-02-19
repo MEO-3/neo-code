@@ -1,4 +1,6 @@
 """Student progress display widget."""
+from __future__ import annotations
+
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QProgressBar, QHBoxLayout
@@ -9,6 +11,7 @@ from neo_code.ui.theme import COLORS
 
 class ProgressWidget(QWidget):
     """Displays student's current phase, lesson, and skill progress."""
+
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)

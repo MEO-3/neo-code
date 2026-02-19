@@ -1,10 +1,13 @@
 """Code completion using Jedi library."""
+from __future__ import annotations
+
 
 from typing import Optional
 
 
 def get_completions(code: str, line: int, column: int) -> list[dict]:
     """Get autocompletion suggestions at the given position.
+
 
     Returns list of dicts with keys: name, type, description.
     """

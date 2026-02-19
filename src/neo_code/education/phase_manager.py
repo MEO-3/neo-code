@@ -1,4 +1,6 @@
 """Educational phase management."""
+from __future__ import annotations
+
 
 from dataclasses import dataclass
 
@@ -6,6 +8,7 @@ from dataclasses import dataclass
 @dataclass
 class Phase:
     """An educational phase definition."""
+
     id: int
     name: str
     description: str

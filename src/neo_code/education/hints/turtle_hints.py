@@ -1,4 +1,6 @@
 """Turtle-specific hints and guidance."""
+from __future__ import annotations
+
 
 TURTLE_CONCEPT_HINTS = {
     "square": (
@@ -45,6 +47,7 @@ TURTLE_CONCEPT_HINTS = {
 
 def get_turtle_hint(concept: str) -> str | None:
     """Get a turtle-specific hint for the given concept."""
+
     return TURTLE_CONCEPT_HINTS.get(concept.lower())
 
 

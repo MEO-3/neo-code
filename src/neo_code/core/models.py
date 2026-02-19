@@ -1,4 +1,6 @@
 """Data models for NEO CODE."""
+from __future__ import annotations
+
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -14,6 +16,7 @@ class ErrorSeverity(Enum):
 
 class CodePattern(Enum):
     """Detected code patterns for AI context."""
+
     TURTLE_DRAWING = auto()
     LOOP_CONSTRUCT = auto()
     FUNCTION_DEFINITION = auto()
@@ -27,6 +30,7 @@ class CodePattern(Enum):
     CLASS_DEFINITION = auto()
     STRING_FORMATTING = auto()
     ERROR_HANDLING = auto()
+    ROBOT_PROGRAMMING = auto()
 
 
 @dataclass
@@ -127,6 +131,7 @@ class StudentProfile:
     current_phase: int = 1
     current_lesson: int = 1
     skill_level: int = 1
+    level: int = 1  # Difficulty level: 1=Explorer, 2=Programmer, 3=Expert
     exercises_completed: list[str] = field(default_factory=list)
     common_error_patterns: dict[str, int] = field(default_factory=dict)
     total_code_runs: int = 0

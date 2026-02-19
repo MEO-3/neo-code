@@ -1,4 +1,6 @@
 """Code analysis engine using AST and pyflakes."""
+from __future__ import annotations
+
 
 import ast
 import hashlib
@@ -16,10 +18,12 @@ from neo_code.core.models import (
 TURTLE_PATTERN = re.compile(r'\bturtle\b|\bforward\b|\bbackward\b|\bleft\b|\bright\b|\bpenup\b|\bpendown\b')
 GPIO_PATTERN = re.compile(r'\bGPIO\b|\bgpiozero\b|\bLED\b|\bButton\b|\bServo\b')
 SENSOR_PATTERN = re.compile(r'\bsensor\b|\btemperature\b|\bultrasonic\b|\bdistance\b', re.IGNORECASE)
+ROBOT_PATTERN = re.compile(r'\bimport\s+robot\b|\bfrom\s+robot\b|\brobot\.Robot\b|\b\.grab\(\)|\b\.release\(\)|\b\.shoot\(')
 
 
 def analyze_code(code: str) -> AnalysisResult:
     """Perform static analysis on Python code. Thread-safe."""
+
     code_hash = hashlib.md5(code.encode()).hexdigest()
     result = AnalysisResult(code_hash=code_hash)
     result.line_count = len(code.splitlines())
@@ -62,7 +66,7 @@ def _extract_ast_info(tree: ast.Module, result: AnalysisResult) -> None:
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 result.imports.append(node.module)
-        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             result.defined_functions.append(node.name)
         elif isinstance(node, ast.Assign):
             for target in node.targets:
@@ -122,6 +126,8 @@ def _detect_patterns(code: str, result: AnalysisResult) -> None:
         result.patterns.append(CodePattern.GPIO_SETUP)
     if SENSOR_PATTERN.search(code):
         result.patterns.append(CodePattern.SENSOR_READ)
+    if ROBOT_PATTERN.search(code):
+        result.patterns.append(CodePattern.ROBOT_PROGRAMMING)
 
     # Check for structural patterns
     if "for " in code or "while " in code:
