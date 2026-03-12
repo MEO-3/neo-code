@@ -9,17 +9,41 @@ description = "Educational Python IDE for STEM & Robotics students"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
+authors = [
+    { name = "NEO Code Team" },
+]
+keywords = ["ide", "education", "python", "stem", "robotics", "kids"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Topic :: Education",
+    "Topic :: Text Editors :: Integrated Development Environments (IDE)",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: X11 Applications :: Qt",
+]
 dependencies = [
     "PyQt6>=6.6.0",
     "Jedi>=0.19.0",
     "pyflakes>=3.2.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/MEO-3/neo-code"
+Repository = "https://github.com/MEO-3//neo-code"
+"Bug Tracker" = "https://github.com/MEO-3/neo-code/issues"
+
 [project.scripts]
 neo-code = "neo_code.__main__:main"
 
+[project.optional-dependencies]
+dev = [
+    "hatch",
+    "twine",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["neo_code"]
-
-[tool.hatch.build.targets.wheel.shared-data]
-"packaging/neo-code.desktop" = "share/applications/neo-code.desktop"
