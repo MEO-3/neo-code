@@ -14,14 +14,14 @@ The activity bar is a narrow strip of NavButtons (icon + label).
 Clicking the active button collapses the panel (toggle).
 """
 
-from dataclasses import dataclass
-
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget,
     QPushButton, QLabel, QSizePolicy, QFrame,
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QFont
+
+from dataclasses import dataclass
 
 from neo_code.core.extension_interface import IFeature
 from neo_code.theme.colors import colors
