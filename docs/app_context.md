@@ -1,66 +1,159 @@
-# NEO CODE GTK - Application Context & Architecture
+# NEO CODE — Application Context
 
 ## 1. App Overview
-**NEO CODE** is an educational Integrated Development Environment (IDE) designed for STEM and Robotics students (aged 6-12) to learn Python programming. 
 
-The application is being rebuilt from a PyQt6 architecture to **Python GTK4 (PyGObject)** to run efficiently on low-resource Armbian devices.
+**NEO CODE** is an educational Integrated Development Environment (IDE) designed for STEM and Robotics students (aged 6–12) to learn Python programming through structured, project-based lessons.
+
+The application is built with **PyQt6** to run efficiently on low-resource Armbian devices without requiring system-level package installations.
 
 ### Target Hardware Constraints
-* **OS:** Armbian (Linux)
-* **Memory:** 2GB RAM 
-* **Storage:** 16GB eMMC
-* **Constraint Strategy:** To operate smoothly within these limits, the application avoids heavy web frameworks (like Electron) and uses a deferred-loading Plugin Architecture. Heavy features (like LLM-based AI and Hardware GPIO) are isolated and only loaded into memory when explicitly enabled.
+
+| Constraint | Value |
+|-----------|-------|
+| OS | Armbian (Linux) |
+| CPU | ARM (e.g. Rockchip RK3566) or x86 AMD (dev machine) |
+| Memory | 2 GB RAM |
+| Storage | 16 GB eMMC |
+
+**Strategy:** Avoid heavy web frameworks (Electron, web views). Use a pure-Python GUI (`PyQt6`) installable via `pip` with no `apt` dependencies. Defer heavy features to later phases so the baseline IDE stays under ~100 MB RAM.
 
 ---
 
 ## 2. Technology Stack
-* **Language:** Python 3.11+
-* **GUI Framework:** PyGObject (GTK4 + Libadwaita)
-* **Code Editor Component:** GtkSourceView 5 (Native syntax highlighting, line numbers)
-* **Drawing & Graphics:** Cairo (for Turtle and Robot 2D Canvases)
-* **Event System:** PyPubSub (for decoupled messaging)
-* **Static Analysis:** PyFlakes + Python `ast` module (Lightweight offline checks)
-* **Code Completion:** Jedi (Lightweight local autocompletion)
+
+| Concern | Choice | Rationale |
+|---------|--------|-----------|
+| Language | Python 3.11+ | Target audience writes Python; same runtime for app and student code |
+| GUI Framework | **PyQt6 ≥ 6.6** | Pure `pip install`; no system packages; cross-platform; Qt Designer available |
+| Syntax highlighting | `QSyntaxHighlighter` (built-in Qt) | Zero extra deps; handles Python keywords, strings, comments, decorators |
+| Code execution | `QProcess` (built-in Qt) | Non-blocking subprocess with Qt signals; no manual threading |
+| Autocompletion | **Jedi ≥ 0.19** | Lightweight, offline, works without a language server |
+| Static analysis | **pyflakes ≥ 3.2** + `ast` | Fast, zero-config, offline |
+| Persistence | Python `sqlite3` (stdlib) | Student profiles and progress; no extra deps |
+| Build & packaging | **hatchling** | `pyproject.toml`-native wheel builder |
 
 ---
 
 ## 3. Core Architecture
-The system uses a highly decoupled, **Event-Driven Extension Architecture**.
 
-### 1. Core Shell (Minimal IDE)
-The core application knows nothing about educational tools, AI, or robots. It only manages:
-* The Main Paned Window layout (Editor, Output Terminal, Side Panels).
-* The File System (Open/Save files).
-* The Event Bus (`PyPubSub`).
-* The Extension Manager.
+The system uses a **layered, event-driven architecture** with hard-coded features.
 
-### 2. Event Bus (PubSub System)
-All components communicate via events instead of direct calls. 
-* *Example:* When a user clicks "Run", the Core fires an `execution_started` event. When the code outputs JSON data, it fires a `stdout_received` event, which the active Canvas plugin listens to.
+### Layers (top → bottom)
 
-### 3. Extension System (Plugins)
-Every actual feature in the app is an extension. This saves RAM by preventing unused modules from being imported.
-* **Built-in Extensions (Loaded by default):**
-  * **Turtle Canvas:** Renders step-by-step turtle graphics.
-  * **Robot Arena:** 2D physics simulation for FGC robot challenges.
-  * **Curriculum Manager:** Loads the 10 built-in educational projects (Levels 1-3).
-* **Future Extensions (Deferred loading):**
-  * **AI Assistant:** Uses local `Ollama` or cloud APIs to provide scaffolding hints (Nudge -> Guidance -> Explicit -> Solution).
-  * **Hardware/IoT:** Interfaces with GPIO pins (`gpiozero`) for Phase 2 hardware learning.
+```
+features/   ← product features (curriculum, turtle canvas)
+ui/         ← Qt window & panels
+execution/  ← code runner (QProcess)
+core/       ← event bus, file manager, settings, IFeature interface
+theme/      ← color palette singleton
+utils/      ← stateless helpers (linter, completer)
+```
+
+Layers only import downward. Features never import each other. All cross-component communication goes through the **Event Bus**.
+
+### Event Bus
+
+`EventBus` is a singleton `QObject` with typed `pyqtSignal`s. Every component connects to and emits signals on this shared object — no component calls another component directly.
+
+```
+toolbar  →  execution_requested  →  runner
+runner   →  stdout_received      →  terminal_panel
+runner   →  canvas_command       →  turtle_canvas  (Phase 2)
+toolbar  →  open_file_dialog_requested  →  main_window
+```
+
+### Feature Interface (`IFeature`)
+
+Every product feature implements `IFeature(QObject)`:
+
+- `activate()` — connect to EventBus signals, build widgets
+- `deactivate()` — disconnect and release resources
+- `get_sidebar_widget()` — widget for the activity bar content panel
+- `get_canvas_widget()` — widget for the canvas panel (turtle, Phase 2)
+
+Features are instantiated **only** in `main_window._load_features()`. No dynamic loading in Phase 1.
 
 ---
 
-## 4. Execution Flow & Sandboxing
-To prevent student code from freezing the GTK UI or crashing the system:
-1. **Wrapper Injection:** Student code (`import turtle`) is intercepted. The IDE injects a proxy wrapper before running it.
-2. **Subprocess Execution:** Code runs in an isolated Python `subprocess` with memory and timeout limits.
-3. **JSON Output:** Instead of opening native windows, the proxy wrapper forces the code to output JSON commands to `stdout` (e.g., `{"cmd": "forward", "args": [100]}`).
-4. **UI Thread Safe Rendering:** The background execution thread uses `GLib.idle_add()` to safely pass these JSON commands back to the GTK main thread, where Cairo draws them onto the `Gtk.DrawingArea`.
+## 4. Features
+
+### Currently Active
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Code Editor** | ✅ Done | `QPlainTextEdit` + Python syntax highlighting + line-number gutter |
+| **Output Terminal** | ✅ Done | Read-only console; shows stdout/stderr; collapsible with toggle button |
+| **Toolbar** | ✅ Done | Run (F5), Stop (F6), New, Open, Save |
+| **Activity Bar Sidebar** | ✅ Done | VS Code-style 56 px icon strip + collapsible 240 px content panel |
+| **Theme System** | ✅ Done | Green (#32A852) primary + white background; all tokens in `theme/colors.py` |
+| **Curriculum (sidebar)** | 🔲 Stub | Sidebar placeholder wired; full lesson browser planned Phase 3 |
+
+### Planned / Not Yet Implemented
+
+| Feature | Phase | Description |
+|---------|-------|-------------|
+| **Turtle Canvas** | 2 | `QPainter`-based canvas; proxy intercepts `import turtle`, outputs JSON to stdout |
+| **Curriculum engine** | 3 | `QTreeWidget` lesson browser, SQLite student profiles, bundled project templates |
+| **Linter feedback** | — | PyFlakes + ast inline error markers in the editor |
+| **Autocompletion** | — | Jedi completions on keypress |
+
+### Explicitly Out of Scope (Phase 1–3)
+
+- AI Assistant (Ollama / cloud LLM) — deferred to a future phase; will integrate via `IFeature`
+- Hardware / GPIO (`gpiozero`) — deferred; same interface pattern
+- Robot Arena — removed from scope
 
 ---
 
-## 5. Development Roadmap
-* **Phase 1: Core IDE Foundation** - Setup GTK4 UI, GtkSourceView, File management, and Subprocess Execution.
-* **Phase 2: Visual Environments** - Implement Cairo drawing for Turtle Graphics and Robot Arena via the proxy pattern.
-* **Phase 3: Curriculum & Progression** - Add SQLite local storage for student profiles, error tracking, and project templates.
-* **Phase 4 (Future): Extensions** - Build the AI Chat assistant and Hardware/GPIO modules as installable plugins.
+## 5. Execution Flow & Sandboxing
+
+Student code runs in an isolated `QProcess` to prevent it from freezing the UI or crashing the system.
+
+1. **Proxy injection** — `proxy_injector.py` prepends a `sys.path` entry so `import turtle` resolves to the bundled proxy instead of the stdlib turtle module. The modified code is written to a `NamedTemporaryFile`.
+2. **Process launch** — `runner.py` calls `QProcess.start("python", [temp_file])`. The Qt event loop handles stdout/stderr asynchronously via signals — no manual threads needed.
+3. **Output classification** — `output_parser.py` reads each stdout line: plain text → `stdout_received` → terminal; JSON object → `canvas_command` → turtle canvas renderer (Phase 2).
+4. **Timeout** — a `QTimer` kills the process after 30 seconds if it has not exited.
+5. **Cleanup** — the temp file is deleted and `execution_finished(exit_code)` is emitted.
+
+```
+[Run button]
+    │  execution_requested(code)
+    ▼
+runner.py
+  → proxy_injector  →  temp .py file
+  → QProcess.start()
+      stdout  →  output_parser
+                  plain text  →  stdout_received  →  TerminalPanel
+                  JSON        →  canvas_command   →  TurtleCanvas (Phase 2)
+      QTimer 30s  →  process.kill()
+      finished    →  execution_finished(exit_code)
+```
+
+---
+
+## 6. Development Roadmap
+
+| Phase | Status | Goal |
+|-------|--------|------|
+| **1 — IDE Foundation** | ✅ Done | PyQt6 window, editor with line numbers, output terminal, toolbar, activity bar sidebar, event bus, QProcess runner, theme system |
+| **2 — Visual Output** | 🔲 Planned | Turtle canvas: `QPainter` renderer + turtle proxy injection |
+| **3 — Curriculum** | 🔲 Planned | Lesson browser (`QTreeWidget`), bundled project templates, SQLite student profiles and progress tracking |
+| **4 — Extensions** | 🔲 Future | AI Assistant and Hardware/GPIO as optional `IFeature` plugins; dynamic loading |
+
+---
+
+## 7. Running the App
+
+```bash
+# Create and activate environment
+conda create -n neo python=3.11
+conda activate neo
+
+# Install dependencies
+pip install -e .
+
+# Run
+python -m neo_code
+# or
+neo-code
+```
