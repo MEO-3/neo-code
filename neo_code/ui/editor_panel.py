@@ -15,12 +15,14 @@ import re
 
 from PyQt6.QtWidgets import QPlainTextEdit, QWidget, QVBoxLayout
 from PyQt6.QtGui import (
-    QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QTextDocument
+    QSyntaxHighlighter, QTextCharFormat, QColor, QFont,
+    QTextDocument, QPainter, QPaintEvent, QResizeEvent,
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSlot
+from PyQt6.QtCore import Qt, QTimer, QRect, QSize, pyqtSlot
 
 from neo_code.core.event_bus import event_bus
 from neo_code.core.settings import Settings
+from neo_code.theme.colors import colors
 
 
 # ── Syntax Highlighter ────────────────────────────────────────────────────────
@@ -43,30 +45,24 @@ class PythonHighlighter(QSyntaxHighlighter):
         return fmt
 
     def _build_rules(self) -> None:
-        kw_fmt = self._fmt("#C792EA", bold=True)
+        kw_fmt = self._fmt(colors.syn_keyword, bold=True)
         for kw in keyword.kwlist:
             self._rules.append((re.compile(rf"\b{kw}\b"), kw_fmt))
 
-        builtin_fmt = self._fmt("#82AAFF")
+        builtin_fmt = self._fmt(colors.syn_builtin)
         builtins = ["print", "len", "range", "int", "str", "float", "list",
                     "dict", "set", "tuple", "bool", "type", "input", "open",
                     "enumerate", "zip", "map", "filter", "sorted", "abs", "round"]
         for b in builtins:
             self._rules.append((re.compile(rf"\b{b}\b"), builtin_fmt))
 
-        # Strings (single and double quoted, non-greedy)
-        str_fmt = self._fmt("#C3E88D")
+        str_fmt = self._fmt(colors.syn_string)
         self._rules.append((re.compile(r'"[^"\\]*(\\.[^"\\]*)*"'), str_fmt))
         self._rules.append((re.compile(r"'[^'\\]*(\\.[^'\\]*)*'"), str_fmt))
 
-        # Numbers
-        self._rules.append((re.compile(r"\b\d+(\.\d+)?\b"), self._fmt("#F78C6C")))
-
-        # Decorators
-        self._rules.append((re.compile(r"@\w+"), self._fmt("#FFCB6B")))
-
-        # Comments — must be last (overrides everything after #)
-        self._comment_fmt = self._fmt("#546E7A", italic=True)
+        self._rules.append((re.compile(r"\b\d+(\.\d+)?\b"), self._fmt(colors.syn_number)))
+        self._rules.append((re.compile(r"@\w+"), self._fmt(colors.syn_decorator)))
+        self._comment_fmt = self._fmt(colors.syn_comment, italic=True)
 
     def highlightBlock(self, text: str) -> None:
         for pattern, fmt in self._rules:
@@ -86,6 +82,22 @@ class PythonHighlighter(QSyntaxHighlighter):
                 break
 
 
+# ── Line Number Area ──────────────────────────────────────────────────────────
+
+class _LineNumberArea(QWidget):
+    """Painted gutter that shows line numbers beside the editor."""
+
+    def __init__(self, editor: "EditorPanel") -> None:
+        super().__init__(editor)
+        self._editor = editor
+
+    def sizeHint(self) -> QSize:
+        return QSize(self._editor.line_number_area_width(), 0)
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        self._editor.paint_line_numbers(event)
+
+
 # ── Editor Widget ─────────────────────────────────────────────────────────────
 
 class EditorPanel(QPlainTextEdit):
@@ -97,8 +109,11 @@ class EditorPanel(QPlainTextEdit):
         self._change_timer.setSingleShot(True)
         self._change_timer.setInterval(300)
 
+        self._line_number_area = _LineNumberArea(self)
+
         self._apply_style()
         self._connect_signals()
+        self._update_line_number_width(0)
 
     # ── Style ─────────────────────────────────────────────────────────────────
 
@@ -114,18 +129,73 @@ class EditorPanel(QPlainTextEdit):
             if self._settings.word_wrap
             else QPlainTextEdit.LineWrapMode.NoWrap
         )
-        self.setStyleSheet("""
-            QPlainTextEdit {
-                background-color: #1E1E2E;
-                color: #CDD6F4;
+        self.setStyleSheet(f"""
+            QPlainTextEdit {{
+                background-color: {colors.editor_bg};
+                color: {colors.editor_text};
                 border: none;
-                selection-background-color: #45475A;
-            }
+                selection-background-color: {colors.editor_selection};
+            }}
         """)
+
+    # ── Line numbers ──────────────────────────────────────────────────────────
+
+    def line_number_area_width(self) -> int:
+        digits = len(str(max(1, self.blockCount())))
+        return 14 + self.fontMetrics().horizontalAdvance("9") * max(digits, 3)
+
+    def _update_line_number_width(self, _block_count: int = 0) -> None:
+        self.setViewportMargins(self.line_number_area_width(), 0, 0, 0)
+
+    def _update_line_number_area(self, rect: QRect, dy: int) -> None:
+        if dy:
+            self._line_number_area.scroll(0, dy)
+        else:
+            self._line_number_area.update(
+                0, rect.y(), self._line_number_area.width(), rect.height()
+            )
+        if rect.contains(self.viewport().rect()):
+            self._update_line_number_width()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        cr = self.contentsRect()
+        self._line_number_area.setGeometry(
+            QRect(cr.left(), cr.top(), self.line_number_area_width(), cr.height())
+        )
+
+    def paint_line_numbers(self, event: QPaintEvent) -> None:
+        painter = QPainter(self._line_number_area)
+        painter.fillRect(event.rect(), QColor(colors.surface))
+
+        block = self.firstVisibleBlock()
+        block_number = block.blockNumber()
+        top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
+        bottom = top + int(self.blockBoundingRect(block).height())
+        line_height = self.fontMetrics().height()
+
+        painter.setFont(self.font())
+
+        while block.isValid() and top <= event.rect().bottom():
+            if block.isVisible() and bottom >= event.rect().top():
+                painter.setPen(QColor(colors.text_secondary))
+                painter.drawText(
+                    0, top,
+                    self._line_number_area.width() - 6,
+                    line_height,
+                    Qt.AlignmentFlag.AlignRight,
+                    str(block_number + 1),
+                )
+            block = block.next()
+            top = bottom
+            bottom = top + int(self.blockBoundingRect(block).height())
+            block_number += 1
 
     # ── Signals ───────────────────────────────────────────────────────────────
 
     def _connect_signals(self) -> None:
+        self.blockCountChanged.connect(self._update_line_number_width)
+        self.updateRequest.connect(self._update_line_number_area)
         self.textChanged.connect(self._on_text_changed)
         self._change_timer.timeout.connect(self._emit_code_changed)
         event_bus.file_opened.connect(self._on_file_opened)

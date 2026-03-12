@@ -2,20 +2,20 @@
 Main window — QMainWindow.
 
 Layout:
-  ┌────────────────────────────────────────────────────┐
-  │  QToolBar (Toolbar)                                │
-  ├──────────┬─────────────────────────┬───────────────┤
-  │ Sidebar  │  Editor (QPlainTextEdit)│  Canvas       │
-  │ (QTabW.) │                         │  (Feature)    │
-  │          ├─────────────────────────┤               │
-  │          │  Terminal (read-only)   │               │
-  └──────────┴─────────────────────────┴───────────────┘
+  ┌──────────────────────────────────────────────────────┐
+  │  QToolBar (Toolbar)                                  │
+  ├────┬──────────┬───────────────────────────────────── ┤
+  │Act.│ Content  │  Editor (QPlainTextEdit)             │
+  │Bar │ Panel    │                                      │
+  │    │ (toggle) ├──────────────────────────────────────┤
+  │    │          │  Terminal (read-only)                │
+  └────┴──────────┴──────────────────────────────────────┘
 
 Hard-coded features are instantiated here and their widgets placed into layout.
 """
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QSplitter, QVBoxLayout, QFileDialog, QLabel
+    QMainWindow, QWidget, QSplitter, QVBoxLayout, QFileDialog,
 )
 from PyQt6.QtCore import Qt, pyqtSlot
 
@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
         self._settings = Settings()
         self._file_manager = FileManager()
 
-        self.setWindowTitle("NEO CODE")
+        self.setWindowTitle("NEO Code")
         self.resize(1280, 800)
 
         self._build_ui()
@@ -56,31 +56,26 @@ class MainWindow(QMainWindow):
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
 
-        # Outer splitter: sidebar | (editor+terminal | canvas)
+        # Outer splitter: sidebar | editor+terminal
         outer_splitter = QSplitter(Qt.Orientation.Horizontal)
+        outer_splitter.setHandleWidth(1)
 
         self._sidebar = SidebarPanel()
         outer_splitter.addWidget(self._sidebar)
+        outer_splitter.setCollapsible(0, False)
 
-        # Inner left splitter: editor (top) | terminal (bottom)
-        editor_terminal_splitter = QSplitter(Qt.Orientation.Vertical)
-        editor_terminal_splitter.addWidget(self._editor)
+        # Editor (top) | terminal (bottom)
+        self._editor_terminal_splitter = QSplitter(Qt.Orientation.Vertical)
+        self._editor_terminal_splitter.setChildrenCollapsible(False)
+        self._editor_terminal_splitter.addWidget(self._editor)
 
         self._terminal = TerminalPanel()
-        self._terminal.setMinimumHeight(120)
-        self._terminal.setMaximumHeight(260)
-        editor_terminal_splitter.addWidget(self._terminal)
-        editor_terminal_splitter.setSizes([600, 160])
+        self._editor_terminal_splitter.addWidget(self._terminal)
+        self._editor_terminal_splitter.setSizes([600, 160])
+        editor_terminal_splitter = self._editor_terminal_splitter
 
         outer_splitter.addWidget(editor_terminal_splitter)
-
-        # Canvas placeholder — replaced in _load_features()
-        self._canvas_container = QLabel("Canvas")
-        self._canvas_container.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._canvas_container.setMinimumWidth(300)
-        outer_splitter.addWidget(self._canvas_container)
-
-        outer_splitter.setSizes([220, 720, 340])
+        outer_splitter.setSizes([56, 1000])
         self._outer_splitter = outer_splitter
 
         root_layout.addWidget(outer_splitter)
@@ -88,22 +83,13 @@ class MainWindow(QMainWindow):
     # ── Feature wiring ────────────────────────────────────────────────────────
 
     def _load_features(self) -> None:
-        from neo_code.features.turtle_canvas.feature import TurtleCanvasFeature
         from neo_code.features.curriculum.feature import CurriculumFeature
-
-        self._turtle = TurtleCanvasFeature()
-        self._turtle.activate()
 
         self._curriculum = CurriculumFeature()
         self._curriculum.activate()
 
-        # Canvas panel (right)
-        canvas = self._turtle.get_canvas_widget()
-        if canvas:
-            self._outer_splitter.replaceWidget(2, canvas)
-
-        # Sidebar tabs
-        self._sidebar.add_feature(self._curriculum, "Lessons")
+        self._sidebar.add_feature(self._curriculum, key="lessons", icon="📖", label="Lessons")
+        self._sidebar.set_active("lessons")
 
     # ── Signal connections ────────────────────────────────────────────────────
 
@@ -142,20 +128,19 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def _on_file_saved(self, path: str) -> None:
-        self.setWindowTitle(f"NEO CODE — {path.split('/')[-1]}")
+        self.setWindowTitle(f"NEO Code — {path.split('/')[-1]}")
 
     @pyqtSlot(str, str)
     def _on_file_opened(self, path: str, _content: str) -> None:
-        self.setWindowTitle(f"NEO CODE — {path.split('/')[-1]}")
+        self.setWindowTitle(f"NEO Code — {path.split('/')[-1]}")
 
     @pyqtSlot()
     def _on_file_new(self) -> None:
-        self.setWindowTitle("NEO CODE — Untitled")
+        self.setWindowTitle("NEO Code — Untitled")
 
     # ── Cleanup ───────────────────────────────────────────────────────────────
 
     def closeEvent(self, event) -> None:
         self._settings.save()
-        self._turtle.deactivate()
         self._curriculum.deactivate()
         super().closeEvent(event)

@@ -15,7 +15,6 @@ Clicking the active button collapses the panel (toggle).
 """
 
 from dataclasses import dataclass
-from typing import Callable
 
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget,
@@ -25,6 +24,7 @@ from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QFont
 
 from neo_code.core.extension_interface import IFeature
+from neo_code.theme.colors import colors
 
 
 # ── Data ──────────────────────────────────────────────────────────────────────
@@ -42,28 +42,28 @@ class NavEntry:
 class _NavButton(QPushButton):
     """Icon + label stacked vertically, styled like an activity-bar item."""
 
-    _STYLE_INACTIVE = """
-        QPushButton {
+    _STYLE_INACTIVE = f"""
+        QPushButton {{
             background: transparent;
             border: none;
-            color: #6C7086;
+            color: {colors.activity_bar_icon};
             padding: 10px 0px;
-        }
-        QPushButton:hover {
-            color: #CDD6F4;
-            background-color: #313244;
-        }
+        }}
+        QPushButton:hover {{
+            color: {colors.activity_bar_icon_hl};
+            background-color: {colors.surface_alt};
+        }}
     """
-    _STYLE_ACTIVE = """
-        QPushButton {
+    _STYLE_ACTIVE = f"""
+        QPushButton {{
             background: transparent;
-            border-left: 3px solid #89B4FA;
+            border-left: 3px solid {colors.activity_bar_active};
             border-right: none;
             border-top: none;
             border-bottom: none;
-            color: #CDD6F4;
+            color: {colors.activity_bar_icon_hl};
             padding: 10px 0px;
-        }
+        }}
     """
 
     def __init__(self, icon: str, label: str) -> None:
@@ -123,7 +123,7 @@ class _ActivityBar(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setFixedWidth(56)
-        self.setStyleSheet("background-color: #181825;")
+        self.setStyleSheet(f"background-color: {colors.activity_bar_bg};")
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 8, 0, 8)
@@ -166,7 +166,10 @@ class _ContentPanel(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setFixedWidth(self._EXPANDED_WIDTH)
-        self.setStyleSheet("background-color: #1E1E2E; border-right: 1px solid #313244;")
+        self.setStyleSheet(
+            f"background-color: {colors.panel_bg};"
+            f"border-right: 1px solid {colors.border};"
+        )
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -181,7 +184,10 @@ class _ContentPanel(QWidget):
         title_font.setPointSize(9)
         title_font.setBold(True)
         self._title.setFont(title_font)
-        self._title.setStyleSheet("color: #6C7086; background-color: #181825;")
+        self._title.setStyleSheet(
+            f"color: {colors.panel_header_text};"
+            f"background-color: {colors.panel_header_bg};"
+        )
         layout.addWidget(self._title)
 
         sep = QFrame()

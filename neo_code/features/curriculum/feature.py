@@ -1,11 +1,8 @@
-"""
-CurriculumFeature — stub (Phase 3 implementation).
-"""
-
 from PyQt6.QtWidgets import QWidget, QLabel
 from PyQt6.QtCore import Qt
 
 from neo_code.core.extension_interface import IFeature
+from neo_code.theme.colors import colors
 
 
 class CurriculumFeature(IFeature):
@@ -29,11 +26,11 @@ class CurriculumFeature(IFeature):
 class _SidebarPlaceholder(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        label = QLabel("Lessons\n(Phase 3)", self)
+        self.setStyleSheet(f"background-color: {colors.panel_bg};")
+        label = QLabel("Lessons", self)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("color: #6C7086;")
+        label.setStyleSheet(f"color: {colors.text_secondary};")
+        self._label = label
 
     def resizeEvent(self, event) -> None:
-        for child in self.children():
-            if isinstance(child, QLabel):
-                child.setGeometry(0, 0, self.width(), self.height())
+        self._label.setGeometry(0, 0, self.width(), self.height())

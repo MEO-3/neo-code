@@ -4,11 +4,53 @@ Toolbar — QToolBar with Run / Stop / New / Open / Save actions.
 Connects to EventBus signals for execution state changes.
 """
 
-from PyQt6.QtWidgets import QToolBar, QLabel
+from PyQt6.QtWidgets import QToolBar
 from PyQt6.QtGui import QAction
-from PyQt6.QtCore import Qt
 
 from neo_code.core.event_bus import event_bus
+from neo_code.theme.colors import colors
+
+_TOOLBAR_STYLE = f"""
+    QToolBar {{
+        background-color: {colors.toolbar_bg};
+        border-bottom: 1px solid {colors.toolbar_border};
+        spacing: 4px;
+        padding: 4px 8px;
+    }}
+    QToolButton {{
+        background: transparent;
+        color: {colors.text};
+        border: none;
+        padding: 4px 10px;
+        border-radius: 4px;
+    }}
+    QToolButton:hover {{
+        background-color: {colors.surface_alt};
+    }}
+    QToolButton[text="▶  Run"] {{
+        background-color: {colors.run_bg};
+        color: {colors.run_text};
+        font-weight: bold;
+        border-radius: 4px;
+        padding: 4px 14px;
+    }}
+    QToolButton[text="▶  Run"]:hover {{
+        background-color: {colors.run_bg_hover};
+    }}
+    QToolButton[text="■  Stop"] {{
+        background-color: {colors.stop_bg};
+        color: {colors.stop_text};
+        font-weight: bold;
+        border-radius: 4px;
+        padding: 4px 14px;
+    }}
+    QToolButton[text="■  Stop"]:hover {{
+        background-color: {colors.stop_bg_hover};
+    }}
+    QToolButton:disabled {{
+        color: {colors.text_disabled};
+    }}
+"""
 
 
 class Toolbar(QToolBar):
@@ -22,6 +64,7 @@ class Toolbar(QToolBar):
     # ── Build ─────────────────────────────────────────────────────────────────
 
     def _build_actions(self) -> None:
+        self.setStyleSheet(_TOOLBAR_STYLE)
         self._act_new = QAction("New", self)
         self._act_new.setShortcut("Ctrl+N")
         self._act_new.triggered.connect(lambda: event_bus.file_new.emit())
