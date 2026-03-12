@@ -1,124 +1,164 @@
 """
-Editor panel — GtkSourceView 5 code editor.
+Editor panel — QPlainTextEdit with Python syntax highlighting.
 
-Fires:
-  CODE_CHANGED  (data: code: str)  — debounced, on every edit
+Emits:
+  event_bus.code_changed (code: str)  — debounced 300 ms after last keystroke
 
-Subscribes to:
-  FILE_OPENED   — loads file content into the buffer
-  FILE_NEW      — clears the buffer
-  PROJECT_OPENED — loads project starter code (forwarded from curriculum)
+Connects to:
+  event_bus.file_opened  — loads content into editor
+  event_bus.file_new     — clears editor
+  event_bus.project_opened — loads project starter code
 """
 
-import gi
-gi.require_version("Gtk", "4.0")
-gi.require_version("GtkSource", "5")
-from gi.repository import Gtk, GtkSource, GLib, Pango
+import keyword
+import re
 
-from neo_code.core import event_bus
+from PyQt6.QtWidgets import QPlainTextEdit, QWidget, QVBoxLayout
+from PyQt6.QtGui import (
+    QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QTextDocument
+)
+from PyQt6.QtCore import Qt, QTimer, pyqtSlot
+
+from neo_code.core.event_bus import event_bus
 from neo_code.core.settings import Settings
 
-# Internal event used within the UI layer only
-CODE_CHANGED = "code.changed"
+
+# ── Syntax Highlighter ────────────────────────────────────────────────────────
+
+class PythonHighlighter(QSyntaxHighlighter):
+    """Lightweight Python syntax highlighter."""
+
+    def __init__(self, document: QTextDocument) -> None:
+        super().__init__(document)
+        self._rules: list[tuple[re.Pattern, QTextCharFormat]] = []
+        self._build_rules()
+
+    def _fmt(self, color: str, bold: bool = False, italic: bool = False) -> QTextCharFormat:
+        fmt = QTextCharFormat()
+        fmt.setForeground(QColor(color))
+        if bold:
+            fmt.setFontWeight(QFont.Weight.Bold)
+        if italic:
+            fmt.setFontItalic(True)
+        return fmt
+
+    def _build_rules(self) -> None:
+        kw_fmt = self._fmt("#C792EA", bold=True)
+        for kw in keyword.kwlist:
+            self._rules.append((re.compile(rf"\b{kw}\b"), kw_fmt))
+
+        builtin_fmt = self._fmt("#82AAFF")
+        builtins = ["print", "len", "range", "int", "str", "float", "list",
+                    "dict", "set", "tuple", "bool", "type", "input", "open",
+                    "enumerate", "zip", "map", "filter", "sorted", "abs", "round"]
+        for b in builtins:
+            self._rules.append((re.compile(rf"\b{b}\b"), builtin_fmt))
+
+        # Strings (single and double quoted, non-greedy)
+        str_fmt = self._fmt("#C3E88D")
+        self._rules.append((re.compile(r'"[^"\\]*(\\.[^"\\]*)*"'), str_fmt))
+        self._rules.append((re.compile(r"'[^'\\]*(\\.[^'\\]*)*'"), str_fmt))
+
+        # Numbers
+        self._rules.append((re.compile(r"\b\d+(\.\d+)?\b"), self._fmt("#F78C6C")))
+
+        # Decorators
+        self._rules.append((re.compile(r"@\w+"), self._fmt("#FFCB6B")))
+
+        # Comments — must be last (overrides everything after #)
+        self._comment_fmt = self._fmt("#546E7A", italic=True)
+
+    def highlightBlock(self, text: str) -> None:
+        for pattern, fmt in self._rules:
+            for m in pattern.finditer(text):
+                self.setFormat(m.start(), m.end() - m.start(), fmt)
+
+        # Inline comment: find first # not inside a string
+        in_str, str_char = False, ""
+        for i, ch in enumerate(text):
+            if in_str:
+                if ch == str_char:
+                    in_str = False
+            elif ch in ('"', "'"):
+                in_str, str_char = True, ch
+            elif ch == "#":
+                self.setFormat(i, len(text) - i, self._comment_fmt)
+                break
 
 
-class EditorPanel(Gtk.ScrolledWindow):
+# ── Editor Widget ─────────────────────────────────────────────────────────────
+
+class EditorPanel(QPlainTextEdit):
     def __init__(self, settings: Settings) -> None:
         super().__init__()
         self._settings = settings
-        self._change_timer: int | None = None
+        self._highlighter = PythonHighlighter(self.document())
+        self._change_timer = QTimer(self)
+        self._change_timer.setSingleShot(True)
+        self._change_timer.setInterval(300)
 
-        self._build_ui()
-        self._subscribe()
+        self._apply_style()
+        self._connect_signals()
 
-    # ── Build ─────────────────────────────────────────────────────────────────
+    # ── Style ─────────────────────────────────────────────────────────────────
 
-    def _build_ui(self) -> None:
-        self.set_hexpand(True)
-        self.set_vexpand(True)
-
-        # Language manager for Python syntax highlighting
-        lang_mgr = GtkSource.LanguageManager.get_default()
-        python_lang = lang_mgr.get_language("python3")
-
-        # Source buffer
-        self._buffer = GtkSource.Buffer()
-        if python_lang:
-            self._buffer.set_language(python_lang)
-        self._buffer.set_highlight_syntax(True)
-        self._buffer.set_highlight_matching_brackets(True)
-        self._apply_color_scheme()
-
-        # Source view
-        self._view = GtkSource.View.new_with_buffer(self._buffer)
-        self._view.set_show_line_numbers(True)
-        self._view.set_highlight_current_line(True)
-        self._view.set_auto_indent(True)
-        self._view.set_indent_on_tab(True)
-        self._view.set_tab_width(self._settings.tab_width)
-        self._view.set_insert_spaces_instead_of_tabs(True)
-        self._view.set_smart_backspace(True)
-        self._view.set_monospace(True)
-        self._apply_font()
-
-        self._buffer.connect("changed", self._on_buffer_changed)
-        self.set_child(self._view)
-
-    def _apply_color_scheme(self) -> None:
-        scheme_mgr = GtkSource.StyleSchemeManager.get_default()
-        scheme_name = "Adwaita-dark" if self._settings.theme == "dark" else "Adwaita"
-        scheme = scheme_mgr.get_scheme(scheme_name)
-        if scheme:
-            self._buffer.set_style_scheme(scheme)
-
-    def _apply_font(self) -> None:
-        font_desc = Pango.FontDescription.from_string(
-            f"Monospace {self._settings.font_size}"
+    def _apply_style(self) -> None:
+        font = QFont("Monospace", self._settings.font_size)
+        font.setStyleHint(QFont.StyleHint.Monospace)
+        self.setFont(font)
+        self.setTabStopDistance(
+            self.fontMetrics().horizontalAdvance(" ") * self._settings.tab_width
         )
-        self._view.override_font(font_desc)
+        self.setLineWrapMode(
+            QPlainTextEdit.LineWrapMode.WidgetWidth
+            if self._settings.word_wrap
+            else QPlainTextEdit.LineWrapMode.NoWrap
+        )
+        self.setStyleSheet("""
+            QPlainTextEdit {
+                background-color: #1E1E2E;
+                color: #CDD6F4;
+                border: none;
+                selection-background-color: #45475A;
+            }
+        """)
 
-    # ── Subscriptions ─────────────────────────────────────────────────────────
+    # ── Signals ───────────────────────────────────────────────────────────────
 
-    def _subscribe(self) -> None:
-        event_bus.subscribe(event_bus.FILE_OPENED, self._on_file_opened)
-        event_bus.subscribe(event_bus.FILE_NEW, self._on_file_new)
-        event_bus.subscribe(event_bus.PROJECT_OPENED, self._on_project_opened)
+    def _connect_signals(self) -> None:
+        self.textChanged.connect(self._on_text_changed)
+        self._change_timer.timeout.connect(self._emit_code_changed)
+        event_bus.file_opened.connect(self._on_file_opened)
+        event_bus.file_new.connect(self._on_file_new)
+        event_bus.project_opened.connect(self._on_project_opened)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
     def get_code(self) -> str:
-        start = self._buffer.get_start_iter()
-        end = self._buffer.get_end_iter()
-        return self._buffer.get_text(start, end, include_hidden_chars=True)
+        return self.toPlainText()
 
     def set_code(self, content: str) -> None:
-        self._buffer.set_text(content)
-        self._buffer.place_cursor(self._buffer.get_start_iter())
+        self.blockSignals(True)
+        self.setPlainText(content)
+        self.blockSignals(False)
 
     # ── Handlers ──────────────────────────────────────────────────────────────
 
-    def _on_buffer_changed(self, _buffer) -> None:
-        # Debounce: only fire CODE_CHANGED 300 ms after the last keystroke
-        if self._change_timer is not None:
-            GLib.source_remove(self._change_timer)
-        self._change_timer = GLib.timeout_add(300, self._emit_code_changed)
+    def _on_text_changed(self) -> None:
+        self._change_timer.start()
 
-    def _emit_code_changed(self) -> bool:
-        self._change_timer = None
-        event_bus.publish(CODE_CHANGED, code=self.get_code())
-        return GLib.SOURCE_REMOVE
+    def _emit_code_changed(self) -> None:
+        event_bus.code_changed.emit(self.get_code())
 
-    def _on_file_opened(self, path: str, content: str) -> None:
+    @pyqtSlot(str, str)
+    def _on_file_opened(self, _path: str, content: str) -> None:
         self.set_code(content)
 
+    @pyqtSlot()
     def _on_file_new(self) -> None:
         self.set_code("")
 
+    @pyqtSlot(object)
     def _on_project_opened(self, project) -> None:
         if hasattr(project, "starter_code"):
             self.set_code(project.starter_code)
-
-    def destroy(self) -> None:
-        event_bus.unsubscribe(event_bus.FILE_OPENED, self._on_file_opened)
-        event_bus.unsubscribe(event_bus.FILE_NEW, self._on_file_new)
-        event_bus.unsubscribe(event_bus.PROJECT_OPENED, self._on_project_opened)

@@ -1,100 +1,76 @@
 """
-Toolbar — Adw.HeaderBar with Run / Stop actions.
+Toolbar — QToolBar with Run / Stop / New / Open / Save actions.
 
-Fires:
-  EXECUTION_REQUESTED  (data: code: str)   — when Run is clicked
-  EXECUTION_STOP_REQUESTED                 — when Stop is clicked
-
-Subscribes to:
-  EXECUTION_STARTED   — disables Run, enables Stop
-  EXECUTION_FINISHED  — re-enables Run, disables Stop
+Connects to EventBus signals for execution state changes.
 """
 
-import gi
-gi.require_version("Gtk", "4.0")
-gi.require_version("Adw", "1")
-from gi.repository import Gtk, Adw, GLib
+from PyQt6.QtWidgets import QToolBar, QLabel
+from PyQt6.QtGui import QAction
+from PyQt6.QtCore import Qt
 
-from neo_code.core import event_bus
+from neo_code.core.event_bus import event_bus
 
 
-class Toolbar(Adw.HeaderBar):
+class Toolbar(QToolBar):
     def __init__(self, get_code_fn) -> None:
         super().__init__()
-        # Callback that returns the current editor content
         self._get_code = get_code_fn
-
-        self._build_ui()
-        self._subscribe()
+        self.setMovable(False)
+        self._build_actions()
+        self._connect_signals()
 
     # ── Build ─────────────────────────────────────────────────────────────────
 
-    def _build_ui(self) -> None:
-        self.set_show_end_title_buttons(True)
+    def _build_actions(self) -> None:
+        self._act_new = QAction("New", self)
+        self._act_new.setShortcut("Ctrl+N")
+        self._act_new.triggered.connect(lambda: event_bus.file_new.emit())
+        self.addAction(self._act_new)
 
-        # Run button
-        self._btn_run = Gtk.Button(label="▶  Run")
-        self._btn_run.add_css_class("suggested-action")
-        self._btn_run.connect("clicked", self._on_run)
-        self.pack_start(self._btn_run)
+        self._act_open = QAction("Open", self)
+        self._act_open.setShortcut("Ctrl+O")
+        self._act_open.triggered.connect(
+            lambda: event_bus.open_file_dialog_requested.emit()
+        )
+        self.addAction(self._act_open)
 
-        # Stop button
-        self._btn_stop = Gtk.Button(label="■  Stop")
-        self._btn_stop.add_css_class("destructive-action")
-        self._btn_stop.set_sensitive(False)
-        self._btn_stop.connect("clicked", self._on_stop)
-        self.pack_start(self._btn_stop)
+        self._act_save = QAction("Save", self)
+        self._act_save.setShortcut("Ctrl+S")
+        self._act_save.triggered.connect(
+            lambda: event_bus.save_file_dialog_requested.emit()
+        )
+        self.addAction(self._act_save)
 
-        # New / Open / Save actions on the right
-        menu_box = Gtk.Box(spacing=4)
+        self.addSeparator()
 
-        btn_new = Gtk.Button(label="New")
-        btn_new.connect("clicked", lambda _: event_bus.publish(event_bus.FILE_NEW))
-        menu_box.append(btn_new)
+        self._act_run = QAction("▶  Run", self)
+        self._act_run.setShortcut("F5")
+        self._act_run.triggered.connect(self._on_run)
+        self.addAction(self._act_run)
 
-        self._btn_open = Gtk.Button(label="Open")
-        self._btn_open.connect("clicked", self._on_open)
-        menu_box.append(self._btn_open)
+        self._act_stop = QAction("■  Stop", self)
+        self._act_stop.setShortcut("F6")
+        self._act_stop.setEnabled(False)
+        self._act_stop.triggered.connect(
+            lambda: event_bus.execution_stop_requested.emit()
+        )
+        self.addAction(self._act_stop)
 
-        self._btn_save = Gtk.Button(label="Save")
-        self._btn_save.connect("clicked", self._on_save)
-        menu_box.append(self._btn_save)
+    # ── Signals ───────────────────────────────────────────────────────────────
 
-        self.pack_end(menu_box)
-
-    # ── Event subscriptions ───────────────────────────────────────────────────
-
-    def _subscribe(self) -> None:
-        event_bus.subscribe(event_bus.EXECUTION_STARTED, self._on_execution_started)
-        event_bus.subscribe(event_bus.EXECUTION_FINISHED, self._on_execution_finished)
+    def _connect_signals(self) -> None:
+        event_bus.execution_started.connect(self._on_execution_started)
+        event_bus.execution_finished.connect(self._on_execution_finished)
 
     # ── Handlers ──────────────────────────────────────────────────────────────
 
-    def _on_run(self, _btn) -> None:
-        code = self._get_code()
-        event_bus.publish(event_bus.EXECUTION_REQUESTED, code=code)
-
-    def _on_stop(self, _btn) -> None:
-        event_bus.publish(event_bus.EXECUTION_STOP_REQUESTED)
-
-    def _on_open(self, _btn) -> None:
-        # File-open dialog is handled by main_window; just fire a sentinel event.
-        event_bus.publish("ui.open_file_dialog_requested")
-
-    def _on_save(self, _btn) -> None:
-        event_bus.publish("ui.save_file_dialog_requested")
+    def _on_run(self) -> None:
+        event_bus.execution_requested.emit(self._get_code())
 
     def _on_execution_started(self) -> None:
-        GLib.idle_add(self._set_running_state, True)
+        self._act_run.setEnabled(False)
+        self._act_stop.setEnabled(True)
 
-    def _on_execution_finished(self, exit_code: int) -> None:
-        GLib.idle_add(self._set_running_state, False)
-
-    def _set_running_state(self, running: bool) -> bool:
-        self._btn_run.set_sensitive(not running)
-        self._btn_stop.set_sensitive(running)
-        return GLib.SOURCE_REMOVE
-
-    def destroy(self) -> None:
-        event_bus.unsubscribe(event_bus.EXECUTION_STARTED, self._on_execution_started)
-        event_bus.unsubscribe(event_bus.EXECUTION_FINISHED, self._on_execution_finished)
+    def _on_execution_finished(self, _exit_code: int) -> None:
+        self._act_run.setEnabled(True)
+        self._act_stop.setEnabled(False)

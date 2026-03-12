@@ -9,7 +9,7 @@ from pathlib import Path
 _CONFIG_PATH = Path.home() / ".config" / "neo-code" / "settings.json"
 
 _DEFAULTS: dict = {
-    "theme": "dark",           # "dark" | "light"
+    "theme": "dark",
     "font_size": 14,
     "tab_width": 4,
     "word_wrap": False,
@@ -22,8 +22,6 @@ class Settings:
         self._data: dict = dict(_DEFAULTS)
         self._load()
 
-    # ── Persistence ───────────────────────────────────────────────────────────
-
     def _load(self) -> None:
         if _CONFIG_PATH.exists():
             try:
@@ -34,11 +32,7 @@ class Settings:
 
     def save(self) -> None:
         _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _CONFIG_PATH.write_text(
-            json.dumps(self._data, indent=2), encoding="utf-8"
-        )
-
-    # ── Typed accessors ───────────────────────────────────────────────────────
+        _CONFIG_PATH.write_text(json.dumps(self._data, indent=2), encoding="utf-8")
 
     @property
     def theme(self) -> str:
@@ -79,8 +73,6 @@ class Settings:
     @last_open_dir.setter
     def last_open_dir(self, value: str) -> None:
         self._data["last_open_dir"] = value
-
-    # ── Generic access ────────────────────────────────────────────────────────
 
     def get(self, key: str, default=None):
         return self._data.get(key, default)

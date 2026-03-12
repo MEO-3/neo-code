@@ -1,47 +1,50 @@
 """
-Event name constants and a thin PyPubSub wrapper.
+EventBus — singleton QObject with typed Qt signals.
 
-All inter-component communication goes through here.
-No component should import another component directly to trigger behaviour.
+All inter-component communication goes through this object.
+No component should call another component directly to trigger behaviour.
+
+Usage:
+    from neo_code.core.event_bus import event_bus
+
+    # Connect
+    event_bus.file_opened.connect(my_slot)
+
+    # Emit
+    event_bus.file_opened.emit(path, content)
 """
 
-from pubsub import pub
+from PyQt6.QtCore import QObject, pyqtSignal
 
 
-# ── Event Names ────────────────────────────────────────────────────────────────
+class EventBus(QObject):
 
-# File lifecycle
-FILE_OPENED = "file.opened"          # data: path: str, content: str
-FILE_SAVED = "file.saved"            # data: path: str
-FILE_NEW = "file.new"                # no data
+    # ── File lifecycle ─────────────────────────────────────────────────────
+    file_new = pyqtSignal()                     # new blank file requested
+    file_opened = pyqtSignal(str, str)          # (path, content)
+    file_saved = pyqtSignal(str)                # (path,)
 
-# Code execution
-EXECUTION_REQUESTED = "execution.requested"        # data: code: str
-EXECUTION_STOP_REQUESTED = "execution.stop"        # no data
-EXECUTION_STARTED = "execution.started"            # no data
-EXECUTION_FINISHED = "execution.finished"          # data: exit_code: int
+    # ── Code / Editor ──────────────────────────────────────────────────────
+    code_changed = pyqtSignal(str)              # (code,)  debounced
 
-# Subprocess output
-STDOUT_RECEIVED = "stdout.received"  # data: text: str
-STDERR_RECEIVED = "stderr.received"  # data: text: str
-CANVAS_COMMAND = "canvas.command"    # data: cmd: dict  e.g. {"cmd": "forward", "args": [100]}
+    # ── Execution ──────────────────────────────────────────────────────────
+    execution_requested = pyqtSignal(str)       # (code,)
+    execution_stop_requested = pyqtSignal()
+    execution_started = pyqtSignal()
+    execution_finished = pyqtSignal(int)        # (exit_code,)
 
-# Curriculum
-PROJECT_OPENED = "project.opened"    # data: project: Project (from features.curriculum.models)
+    # ── Subprocess output ──────────────────────────────────────────────────
+    stdout_received = pyqtSignal(str)           # (text,)
+    stderr_received = pyqtSignal(str)           # (text,)
+    canvas_command = pyqtSignal(dict)           # (cmd dict)  e.g. {"cmd":"forward","args":[100]}
 
+    # ── Curriculum ─────────────────────────────────────────────────────────
+    project_opened = pyqtSignal(object)         # (Project,)
 
-# ── Convenience wrappers ───────────────────────────────────────────────────────
-
-def subscribe(event: str, listener) -> None:
-    pub.subscribe(listener, event)
-
-
-def unsubscribe(event: str, listener) -> None:
-    try:
-        pub.unsubscribe(listener, event)
-    except pub.TopicNameError:
-        pass
+    # ── UI dialogs (toolbar → main_window) ────────────────────────────────
+    open_file_dialog_requested = pyqtSignal()
+    save_file_dialog_requested = pyqtSignal()
 
 
-def publish(event: str, **kwargs) -> None:
-    pub.sendMessage(event, **kwargs)
+# Module-level singleton — import this everywhere
+event_bus = EventBus()

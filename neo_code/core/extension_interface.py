@@ -1,44 +1,43 @@
 """
-IExtension — abstract base class for all hard-coded (and future dynamic) features.
+IFeature — abstract base class for all hard-coded (and future dynamic) features.
 
 Hard-coded features in `features/` are instantiated directly in main_window.py.
-This interface ensures they remain swappable without changing the shell.
+This interface keeps them swappable without changing the shell.
+
+Inherits QObject so features can define their own Qt signals if needed.
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
-import gi
-gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from PyQt6.QtCore import QObject
+from PyQt6.QtWidgets import QWidget
 
 
-class IExtension(ABC):
+class IFeature(QObject):
 
     @abstractmethod
-    def activate(self, event_bus) -> None:
+    def activate(self) -> None:
         """
         Called once after instantiation.
-        Subscribe to events, allocate resources, build internal widgets.
-        Receives the event_bus module so the extension does not import it directly.
+        Connect to EventBus signals, allocate resources, build internal widgets.
         """
 
     @abstractmethod
     def deactivate(self) -> None:
         """
-        Called when the feature is being torn down.
-        Unsubscribe from all events and release resources.
+        Disconnect all signals and release resources.
         """
 
     @abstractmethod
-    def get_canvas_widget(self) -> Gtk.Widget | None:
+    def get_canvas_widget(self) -> QWidget | None:
         """
-        Widget to place in the right (canvas) panel.
+        Widget for the right (canvas) panel.
         Return None if this feature has no canvas view.
         """
 
     @abstractmethod
-    def get_sidebar_widget(self) -> Gtk.Widget | None:
+    def get_sidebar_widget(self) -> QWidget | None:
         """
-        Widget to place in the left sidebar panel.
+        Widget for the left sidebar panel.
         Return None if this feature has no sidebar view.
         """

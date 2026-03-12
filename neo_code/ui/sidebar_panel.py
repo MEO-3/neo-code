@@ -1,55 +1,269 @@
 """
-Sidebar panel — left panel shell.
+Sidebar — activity bar + content panel navigation.
 
-Hosts a stack of sidebar widgets provided by each feature.
-The active widget is determined by which tab the user selects.
+Layout:
+  ┌────┬──────────────────┐
+  │ ▲  │                  │
+  │Nav │  Content Panel   │
+  │Bar │  (QStackedWidget)│
+  │    │                  │
+  │ ▼  │                  │
+  └────┴──────────────────┘
+
+The activity bar is a narrow strip of NavButtons (icon + label).
+Clicking the active button collapses the panel (toggle).
 """
 
-import gi
-gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from dataclasses import dataclass
+from typing import Callable
 
-from neo_code.core.extension_interface import IExtension
+from PyQt6.QtWidgets import (
+    QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget,
+    QPushButton, QLabel, QSizePolicy, QFrame,
+)
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtGui import QFont
+
+from neo_code.core.extension_interface import IFeature
 
 
-class SidebarPanel(Gtk.Box):
+# ── Data ──────────────────────────────────────────────────────────────────────
+
+@dataclass
+class NavEntry:
+    key: str
+    icon: str       # Unicode symbol or emoji
+    label: str
+    widget: QWidget
+
+
+# ── Activity bar button ───────────────────────────────────────────────────────
+
+class _NavButton(QPushButton):
+    """Icon + label stacked vertically, styled like an activity-bar item."""
+
+    _STYLE_INACTIVE = """
+        QPushButton {
+            background: transparent;
+            border: none;
+            color: #6C7086;
+            padding: 10px 0px;
+        }
+        QPushButton:hover {
+            color: #CDD6F4;
+            background-color: #313244;
+        }
+    """
+    _STYLE_ACTIVE = """
+        QPushButton {
+            background: transparent;
+            border-left: 3px solid #89B4FA;
+            border-right: none;
+            border-top: none;
+            border-bottom: none;
+            color: #CDD6F4;
+            padding: 10px 0px;
+        }
+    """
+
+    def __init__(self, icon: str, label: str) -> None:
+        super().__init__()
+        self.setFixedWidth(56)
+        self.setCheckable(True)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip(label)
+
+        # Stack icon + label vertically inside the button
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 4, 0, 4)
+        layout.setSpacing(2)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        icon_lbl = QLabel(icon)
+        icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_font = QFont()
+        icon_font.setPointSize(18)
+        icon_lbl.setFont(icon_font)
+        icon_lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        layout.addWidget(icon_lbl)
+
+        text_lbl = QLabel(label)
+        text_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        text_font = QFont()
+        text_font.setPointSize(8)
+        text_lbl.setFont(text_font)
+        text_lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        layout.addWidget(text_lbl)
+
+        # Keep child label colours in sync with button state
+        self._icon_lbl = icon_lbl
+        self._text_lbl = text_lbl
+        self._set_active(False)
+
+    def _set_active(self, active: bool) -> None:
+        color = "#CDD6F4" if active else "#6C7086"
+        self._icon_lbl.setStyleSheet(f"color: {color};")
+        self._text_lbl.setStyleSheet(f"color: {color};")
+        self.setStyleSheet(self._STYLE_ACTIVE if active else self._STYLE_INACTIVE)
+
+    def setChecked(self, checked: bool) -> None:
+        super().setChecked(checked)
+        self._set_active(checked)
+
+
+# ── Activity bar ──────────────────────────────────────────────────────────────
+
+class _ActivityBar(QWidget):
+    """Narrow vertical strip of nav buttons."""
+
+    nav_selected = pyqtSignal(str)   # key of selected entry
+    nav_toggled = pyqtSignal()        # same key clicked again → collapse
+
     def __init__(self) -> None:
-        super().__init__(orientation=Gtk.Orientation.VERTICAL)
-        self._build_ui()
+        super().__init__()
+        self.setFixedWidth(56)
+        self.setStyleSheet("background-color: #181825;")
 
-    # ── Build ─────────────────────────────────────────────────────────────────
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 8, 0, 8)
+        self._layout.setSpacing(0)
+        self._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-    def _build_ui(self) -> None:
-        self.set_hexpand(False)
-        self.set_vexpand(True)
-        self.set_size_request(220, -1)
+        self._buttons: dict[str, _NavButton] = {}
+        self._active_key: str | None = None
 
-        self._stack = Gtk.Stack()
-        self._stack.set_vexpand(True)
-        self._stack.set_hexpand(True)
-        self._stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+    def add_entry(self, key: str, icon: str, label: str) -> None:
+        btn = _NavButton(icon, label)
+        btn.clicked.connect(lambda _checked, k=key: self._on_clicked(k))
+        self._buttons[key] = btn
+        self._layout.addWidget(btn)
 
-        self._switcher = Gtk.StackSwitcher()
-        self._switcher.set_stack(self._stack)
-        self._switcher.set_halign(Gtk.Align.CENTER)
-        self._switcher.set_margin_top(4)
-        self._switcher.set_margin_bottom(4)
+    def _on_clicked(self, key: str) -> None:
+        if self._active_key == key:
+            # Toggle off
+            self._active_key = None
+            self._buttons[key].setChecked(False)
+            self.nav_toggled.emit()
+        else:
+            if self._active_key and self._active_key in self._buttons:
+                self._buttons[self._active_key].setChecked(False)
+            self._active_key = key
+            self._buttons[key].setChecked(True)
+            self.nav_selected.emit(key)
 
-        self.append(self._switcher)
-        self.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
-        self.append(self._stack)
+    def set_active(self, key: str) -> None:
+        self._on_clicked(key)
+
+
+# ── Content panel ─────────────────────────────────────────────────────────────
+
+class _ContentPanel(QWidget):
+    """Collapsible panel that shows the widget for the active nav entry."""
+
+    _EXPANDED_WIDTH = 240
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setFixedWidth(self._EXPANDED_WIDTH)
+        self.setStyleSheet("background-color: #1E1E2E; border-right: 1px solid #313244;")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Title bar
+        self._title = QLabel("")
+        self._title.setFixedHeight(32)
+        self._title.setContentsMargins(12, 0, 0, 0)
+        self._title.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        title_font = QFont()
+        title_font.setPointSize(9)
+        title_font.setBold(True)
+        self._title.setFont(title_font)
+        self._title.setStyleSheet("color: #6C7086; background-color: #181825;")
+        layout.addWidget(self._title)
+
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet("color: #313244;")
+        layout.addWidget(sep)
+
+        self._stack = QStackedWidget()
+        self._stack.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self._stack)
+
+        self._entries: dict[str, int] = {}   # key → stack index
+
+    def add_entry(self, entry: NavEntry) -> None:
+        idx = self._stack.addWidget(entry.widget)
+        self._entries[entry.key] = idx
+
+    def show_entry(self, key: str, label: str) -> None:
+        if key in self._entries:
+            self._stack.setCurrentIndex(self._entries[key])
+            self._title.setText(label.upper())
+        self.setFixedWidth(self._EXPANDED_WIDTH)
+        self.setVisible(True)
+
+    def collapse(self) -> None:
+        self.setFixedWidth(0)
+        self.setVisible(False)
+
+
+# ── Public SidebarPanel ───────────────────────────────────────────────────────
+
+class SidebarPanel(QWidget):
+    """
+    Activity bar + content panel.
+
+    Usage:
+        sidebar.add_feature(feature, key="lessons", icon="📖", label="Lessons")
+        sidebar.add_feature(feature, key="turtle",  icon="🐢", label="Turtle")
+        sidebar.set_active("lessons")   # optional default
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        self._activity_bar = _ActivityBar()
+        self._content = _ContentPanel()
+        self._content.collapse()   # start collapsed
+
+        layout.addWidget(self._activity_bar)
+        layout.addWidget(self._content)
+
+        self._entries: dict[str, NavEntry] = {}
+
+        self._activity_bar.nav_selected.connect(self._on_nav_selected)
+        self._activity_bar.nav_toggled.connect(self._content.collapse)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def add_feature(self, feature: IExtension, name: str, icon_name: str | None = None) -> None:
-        """Register a feature's sidebar widget as a named tab."""
-        widget = feature.get_sidebar_widget()
-        if widget is None:
-            return
-        self._stack.add_titled(widget, name.lower(), name)
-        if icon_name:
-            page = self._stack.get_page(widget)
-            page.set_icon_name(icon_name)
+    def add_nav_widget(self, key: str, icon: str, label: str, widget: QWidget) -> None:
+        """Register a plain widget (not necessarily from a feature)."""
+        entry = NavEntry(key=key, icon=icon, label=label, widget=widget)
+        self._entries[key] = entry
+        self._activity_bar.add_entry(key, icon, label)
+        self._content.add_entry(entry)
 
-    def set_active(self, name: str) -> None:
-        self._stack.set_visible_child_name(name.lower())
+    def add_feature(self, feature: IFeature, key: str, icon: str, label: str) -> None:
+        """Register a feature's sidebar widget."""
+        widget = feature.get_sidebar_widget()
+        if widget is not None:
+            self.add_nav_widget(key, icon, label, widget)
+
+    def set_active(self, key: str) -> None:
+        self._activity_bar.set_active(key)
+
+    # ── Internal ──────────────────────────────────────────────────────────────
+
+    def _on_nav_selected(self, key: str) -> None:
+        entry = self._entries.get(key)
+        if entry:
+            self._content.show_entry(key, entry.label)

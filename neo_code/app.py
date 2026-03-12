@@ -1,41 +1,50 @@
 """
-NEO CODE GTK — Gtk.Application bootstrap.
+NEO CODE — QApplication bootstrap.
 """
 
-import importlib.resources
-from pathlib import Path
-
-import gi
-gi.require_version("Gtk", "4.0")
-gi.require_version("Adw", "1")
-from gi.repository import Gtk, Adw
+import sys
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QPalette, QColor
+from PyQt6.QtCore import Qt
 
 from neo_code.ui.main_window import MainWindow
 
-_CSS_PATH = Path(__file__).parent / "data" / "styles" / "app.css"
 
+class NeoCodeApp(QApplication):
+    def __init__(self, argv: list[str]) -> None:
+        super().__init__(argv)
+        self.setApplicationName("NEO Code")
+        self.setOrganizationName("ThingEdu")
+        self._apply_dark_theme()
 
-class NeoCodeApp(Adw.Application):
-    def __init__(self) -> None:
-        super().__init__(application_id="io.github.neocode")
+        # Start the execution runner (listens to event_bus internally)
+        from neo_code.execution.runner import Runner
+        self._runner = Runner()
 
-    def do_startup(self) -> None:
-        Adw.Application.do_startup(self)
-        self._load_css()
+        self._window = MainWindow()
+        self._window.show()
 
-    def do_activate(self) -> None:
-        win = self.get_active_window()
-        if win is None:
-            win = MainWindow(app=self)
-        win.present()
+    def _apply_dark_theme(self) -> None:
+        self.setStyle("Fusion")
+        palette = QPalette()
+        dark = QColor(30, 30, 46)        # #1E1E2E  base
+        mid_dark = QColor(49, 50, 68)    # #313244  surface
+        highlight = QColor(137, 180, 250) # #89B4FA  blue
+        text = QColor(205, 214, 244)     # #CDD6F4  text
+        dim_text = QColor(108, 112, 134) # #6C7086  subtext
 
-    def _load_css(self) -> None:
-        provider = Gtk.CssProvider()
-        if _CSS_PATH.exists():
-            provider.load_from_path(str(_CSS_PATH))
-        Gtk.StyleContext.add_provider_for_display(
-            self.get_default_display() if hasattr(self, "get_default_display")
-            else Gtk.Display.get_default(),
-            provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
+        palette.setColor(QPalette.ColorRole.Window, dark)
+        palette.setColor(QPalette.ColorRole.WindowText, text)
+        palette.setColor(QPalette.ColorRole.Base, mid_dark)
+        palette.setColor(QPalette.ColorRole.AlternateBase, dark)
+        palette.setColor(QPalette.ColorRole.ToolTipBase, dark)
+        palette.setColor(QPalette.ColorRole.ToolTipText, text)
+        palette.setColor(QPalette.ColorRole.Text, text)
+        palette.setColor(QPalette.ColorRole.Button, mid_dark)
+        palette.setColor(QPalette.ColorRole.ButtonText, text)
+        palette.setColor(QPalette.ColorRole.BrightText, QColor("white"))
+        palette.setColor(QPalette.ColorRole.Highlight, highlight)
+        palette.setColor(QPalette.ColorRole.HighlightedText, dark)
+        palette.setColor(QPalette.ColorRole.PlaceholderText, dim_text)
+        self.setPalette(palette)
+

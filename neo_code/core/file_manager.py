@@ -1,13 +1,12 @@
 """
 File manager — open, save, and track the current file.
 
-Fires events from core.event_bus; does not touch the UI directly.
+Emits EventBus signals; does not touch the UI directly.
 """
 
-import os
 from pathlib import Path
 
-from neo_code.core import event_bus
+from neo_code.core.event_bus import event_bus
 
 
 class FileManager:
@@ -18,13 +17,13 @@ class FileManager:
 
     def new_file(self) -> None:
         self.current_path = None
-        event_bus.publish(event_bus.FILE_NEW)
+        event_bus.file_new.emit()
 
     def open_file(self, path: str | Path) -> str:
         path = Path(path)
         content = path.read_text(encoding="utf-8")
         self.current_path = path
-        event_bus.publish(event_bus.FILE_OPENED, path=str(path), content=content)
+        event_bus.file_opened.emit(str(path), content)
         return content
 
     def save_file(self, content: str, path: str | Path | None = None) -> Path:
@@ -33,7 +32,7 @@ class FileManager:
             raise ValueError("No file path provided and no file is currently open.")
         target.write_text(content, encoding="utf-8")
         self.current_path = target
-        event_bus.publish(event_bus.FILE_SAVED, path=str(target))
+        event_bus.file_saved.emit(str(target))
         return target
 
     def save_file_as(self, content: str, path: str | Path) -> Path:

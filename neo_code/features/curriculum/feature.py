@@ -1,29 +1,39 @@
 """
-CurriculumFeature — stub.
-Full implementation in Phase 3.
+CurriculumFeature — stub (Phase 3 implementation).
 """
 
-import gi
-gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from PyQt6.QtWidgets import QWidget, QLabel
+from PyQt6.QtCore import Qt
 
-from neo_code.core.extension_interface import IExtension
+from neo_code.core.extension_interface import IFeature
 
 
-class CurriculumFeature(IExtension):
-    def activate(self, event_bus) -> None:
-        self._event_bus = event_bus
+class CurriculumFeature(IFeature):
+    def __init__(self) -> None:
+        super().__init__()
+        self._sidebar: QWidget | None = None
+
+    def activate(self) -> None:
+        self._sidebar = _SidebarPlaceholder()
 
     def deactivate(self) -> None:
         pass
 
-    def get_canvas_widget(self) -> Gtk.Widget | None:
+    def get_canvas_widget(self) -> QWidget | None:
         return None
 
-    def get_sidebar_widget(self) -> Gtk.Widget | None:
-        placeholder = Gtk.Label(label="Lessons\n(coming in Phase 3)")
-        placeholder.set_vexpand(True)
-        placeholder.set_halign(Gtk.Align.CENTER)
-        placeholder.set_valign(Gtk.Align.CENTER)
-        placeholder.add_css_class("dim-label")
-        return placeholder
+    def get_sidebar_widget(self) -> QWidget | None:
+        return self._sidebar
+
+
+class _SidebarPlaceholder(QWidget):
+    def __init__(self) -> None:
+        super().__init__()
+        label = QLabel("Lessons\n(Phase 3)", self)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("color: #6C7086;")
+
+    def resizeEvent(self, event) -> None:
+        for child in self.children():
+            if isinstance(child, QLabel):
+                child.setGeometry(0, 0, self.width(), self.height())
