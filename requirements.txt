@@ -1,0 +1,13 @@
+# GUI — install via system package manager on Armbian/Debian:
+#   sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0 \
+#                    gir1.2-adw-1 gir1.2-gtksource-5
+#
+# The PyGObject runtime is NOT available on PyPI for ARM; system packages are required.
+# PyGObject      — GTK4 Python bindings
+# libadwaita     — Adw widgets (Adw.ApplicationWindow, Adw.HeaderBar, …)
+# GtkSourceView5 — Syntax-highlighted code editor widget
+
+# Python-only dependencies (installable via pip)
+PyPubSub>=4.0.3          # Event bus
+Jedi>=0.19.0             # Autocompletion
+pyflakes>=3.2.0          # Static analysis / linting

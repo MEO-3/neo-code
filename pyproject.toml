@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "neo-code"
+version = "0.1.0"
+description = "Educational Python IDE for STEM & Robotics students"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+# PyGObject / GTK4 / GtkSourceView5 / Libadwaita must be installed
+# via apt on the target device — they are NOT on PyPI.
+dependencies = [
+    "PyPubSub>=4.0.3",
+    "Jedi>=0.19.0",
+    "pyflakes>=3.2.0",
+]
+
+[project.scripts]
+neo-code = "neo_code.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["neo_code"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+# Install the .desktop launcher and app icon system-wide
+"packaging/neo-code.desktop" = "share/applications/neo-code.desktop"
+"neo_code/data/icons/neo-code.svg" = "share/icons/hicolor/scalable/apps/neo-code.svg"

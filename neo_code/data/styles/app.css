@@ -1,0 +1,6 @@
+/* Terminal output view */
+.terminal-view {
+  background-color: #1E1E1E;
+  color: #E0E0E0;
+  font-family: monospace;
+}
