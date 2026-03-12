@@ -1,10 +1,29 @@
-# NEO CODE GTK — Architecture & Folder Structure
+# NEO CODE — Architecture & Folder Structure
 
 ## Overview
 
-NEO CODE uses an **Event-Driven Architecture** with hard-coded features. The codebase is split into strict layers that never import downward — the core knows nothing about features, and features never talk to each other directly. All communication goes through the **Event Bus**.
+NEO CODE is an **educational Python IDE** for STEM/Robotics students (ages 6–12) built with **PyQt6**. It uses an **Event-Driven Architecture** with hard-coded features. Layers communicate only through a central `EventBus` — components never import each other directly.
 
-An `IExtension` interface is defined in `core/` so future dynamic extensions can be plugged in without restructuring the shell.
+An `IFeature` interface is defined in `core/` so future dynamic features can be plugged in without restructuring the shell.
+
+---
+
+## Tech Stack
+
+| Concern | Library / Tool | Why |
+|---------|---------------|-----|
+| GUI framework | **PyQt6 ≥ 6.6** | Pure `pip install`, no system packages needed, cross-platform, Qt Designer available |
+| Syntax highlighting | `QSyntaxHighlighter` (built-in) | No extra deps; handles Python keywords, strings, comments |
+| Code execution | `QProcess` (built-in) | Non-blocking subprocess with stdout/stderr signals; no threading needed |
+| Autocompletion | **Jedi ≥ 0.19** | Lightweight, local, works offline |
+| Linting | **pyflakes ≥ 3.2** + `ast` | Fast, zero config, finds undefined names and syntax errors |
+| Persistence | Python `sqlite3` (stdlib) | Student profiles, progress, no extra deps |
+| Build & packaging | **hatchling** | `pyproject.toml`-native, produces wheel |
+| Entry point | `neo-code` CLI → `neo_code.__main__:main` | Installed via `pip install -e .` |
+
+### Python requirement
+
+Python **3.11+** (uses `QObject` type hints, `match` statements in future features).
 
 ---
 
@@ -12,21 +31,47 @@ An `IExtension` interface is defined in `core/` so future dynamic extensions can
 
 ```
 neo-code/
-├── pyproject.toml               # Project metadata & dependencies (Python 3.11+)
+├── pyproject.toml               # Project metadata & build config
+├── requirements.txt             # Pinned deps for development
 ├── docs/
 │   ├── app_context.md           # Product context, hardware constraints, roadmap
 │   └── architecture.md          # This file
 │
 └── neo_code/
     ├── __init__.py
-    ├── __main__.py               # Entry point — run with: python -m neo_code
+    ├── __main__.py               # Entry point: python -m neo_code  or  neo-code
+    ├── app.py                    # NeoCodeApp(QApplication) — palette, style, bootstrap
     │
-    ├── core/                     # Core shell — zero knowledge of features
-    ├── ui/                       # Core GTK4 UI — no feature-specific widgets
-    ├── execution/                # Subprocess sandboxing layer
-    ├── features/                 # Hard-coded product features
-    ├── utils/                    # Shared stateless utilities
-    └── data/                     # Bundled non-Python resources
+    ├── core/                     # Shell layer — no imports from any other neo_code package
+    │   ├── event_bus.py          # EventBus singleton (typed pyqtSignals)
+    │   ├── extension_interface.py # IFeature(QObject) ABC
+    │   ├── file_manager.py       # Open / save / new file logic
+    │   └── settings.py           # JSON settings read/write
+    │
+    ├── theme/                    # Global visual tokens
+    │   └── colors.py             # Frozen _Palette dataclass + `colors` singleton
+    │
+    ├── ui/                       # PyQt6 window & panel widgets — imports core/ only
+    │   ├── main_window.py        # QMainWindow: layout, feature wiring, file dialogs
+    │   ├── toolbar.py            # QToolBar: Run / Stop / New / Open / Save actions
+    │   ├── editor_panel.py       # QPlainTextEdit + PythonHighlighter + line-number gutter
+    │   ├── terminal_panel.py     # Output panel: header bar + collapsible QPlainTextEdit
+    │   └── sidebar_panel.py      # VS Code-style activity bar + collapsible content panel
+    │
+    ├── execution/                # Code runner layer — imports core/ only
+    │   ├── runner.py             # QProcess executor: 30 s timeout, auto-cleanup
+    │   ├── proxy_injector.py     # Rewrites student code to inject turtle proxy path
+    │   └── output_parser.py      # Classifies stdout lines: plain text vs JSON canvas cmd
+    │
+    ├── features/                 # Hard-coded product features — import core/ + utils/ only
+    │   ├── curriculum/           # Phase 3 — lesson browser & student progress (stub)
+    │   │   └── feature.py        # CurriculumFeature(IFeature) — sidebar placeholder
+    │   └── turtle_canvas/        # Phase 2 — visual turtle output (stub, disconnected)
+    │       └── feature.py        # TurtleCanvasFeature(IFeature) — not yet wired to UI
+    │
+    └── utils/                    # Stateless helpers — no events, no Qt widgets
+        ├── linter.py             # PyFlakes + ast → list[LintError]  (stub)
+        └── completer.py          # Jedi completions at cursor position  (stub)
 ```
 
 ---
@@ -35,171 +80,208 @@ neo-code/
 
 ### `core/` — The Shell
 
-The foundation of the app. Contains only what every other layer depends on. Has **no imports** from anywhere else inside `neo_code/`.
+Foundation of the app. **No imports from any other `neo_code` package.**
 
 | File | Purpose |
 |------|---------|
-| `event_bus.py` | Thin PyPubSub wrapper. Defines all event name constants (`EXECUTION_REQUESTED`, `CANVAS_COMMAND`, `FILE_OPENED`, …) used across the app. |
-| `extension_interface.py` | `IExtension` ABC. Defines the contract (`activate`, `deactivate`, `get_canvas_widget`, `get_sidebar_widget`) that all features must implement. Enables future dynamic loading without changing the shell. |
-| `file_manager.py` | Open / save / recent-files logic. Fires `FILE_OPENED` and `FILE_SAVED` events. |
-| `settings.py` | Reads and writes a JSON settings file. Provides typed accessors. |
+| `event_bus.py` | `EventBus(QObject)` singleton with typed `pyqtSignal`s. All cross-component communication goes here. Import `event_bus` anywhere; call `.connect()` and `.emit()`. |
+| `extension_interface.py` | `IFeature(QObject)` ABC. Defines the contract: `activate()`, `deactivate()`, `get_canvas_widget()`, `get_sidebar_widget()`. Keeps features swappable. |
+| `file_manager.py` | Open / save / new file logic. Emits `file_opened`, `file_saved`, `file_new` on the event bus. |
+| `settings.py` | JSON settings stored in `~/.config/neo-code/settings.json`. Typed accessors for font size, last open directory, etc. |
+
+#### EventBus signals
+
+```python
+# File lifecycle
+file_new            = pyqtSignal()
+file_opened         = pyqtSignal(str, str)       # (path, content)
+file_saved          = pyqtSignal(str)             # (path,)
+
+# Execution
+execution_requested        = pyqtSignal(str)      # (code,)
+execution_stop_requested   = pyqtSignal()
+execution_started          = pyqtSignal()
+execution_finished         = pyqtSignal(int)      # (exit_code,)
+
+# Subprocess output
+stdout_received     = pyqtSignal(str)
+stderr_received     = pyqtSignal(str)
+canvas_command      = pyqtSignal(dict)            # {"cmd": "forward", "args": [100]}
+
+# Curriculum
+project_opened      = pyqtSignal(object)          # (Project,)
+
+# UI dialogs (toolbar → main_window)
+open_file_dialog_requested = pyqtSignal()
+save_file_dialog_requested = pyqtSignal()
+```
 
 ---
 
-### `ui/` — Core GTK4 Interface
+### `theme/` — Visual Tokens
 
-Builds the window and panel layout. Instantiates hard-coded features directly and wires their widgets into the layout. Imports from `core/` only.
+Single source of truth for all colors. Never hardcode hex strings in widgets.
 
-| File | Purpose |
-|------|---------|
-| `main_window.py` | `Adw.ApplicationWindow`. Creates the top-level paned layout, instantiates all features, and places their widgets in the correct panels. |
-| `editor_panel.py` | `GtkSourceView 5` code editor widget. Handles syntax highlighting, line numbers, and fires `CODE_CHANGED` events. |
-| `terminal_panel.py` | Read-only output terminal. Subscribes to `STDOUT_RECEIVED` and `STDERR_RECEIVED` events to display subprocess output. |
-| `sidebar_panel.py` | Left sidebar shell. Swaps in the `get_sidebar_widget()` from whichever feature is active. |
-| `toolbar.py` | `Adw.HeaderBar` with Run / Stop actions. Fires `EXECUTION_REQUESTED` and `EXECUTION_STOP_REQUESTED` events on click. |
+```python
+from neo_code.theme.colors import colors
+
+widget.setStyleSheet(f"background: {colors.primary};")
+```
+
+| Token group | Examples |
+|-------------|---------|
+| Brand | `primary` (#32A852 green), `primary_hover`, `primary_dim` |
+| Background | `background` (#FFFFFF), `surface`, `surface_alt`, `border` |
+| Text | `text`, `text_secondary`, `text_disabled` |
+| Editor | `editor_bg`, `editor_line_hl`, `editor_selection` |
+| Terminal | `terminal_bg` (dark), `terminal_text`, `terminal_error`, `terminal_success` |
+| Syntax | `syn_keyword`, `syn_string`, `syn_number`, `syn_comment`, `syn_decorator` |
+| Activity bar | `activity_bar_bg`, `activity_bar_active`, `activity_bar_icon` |
+| Toolbar | `toolbar_bg`, `toolbar_border` |
+| Buttons | `run_bg/run_text`, `stop_bg/stop_text` |
 
 ---
 
-### `execution/` — Subprocess Sandboxing
+### `ui/` — PyQt6 Interface
 
-Runs student code safely in an isolated process. The GTK UI is never blocked. Imports from `core/` only.
+Builds the window and panel layout. Imports from `core/` and `theme/` only.
 
 | File | Purpose |
 |------|---------|
-| `runner.py` | Launches the student code as a Python `subprocess` with a memory cap and timeout. Reads stdout line-by-line and fires `STDOUT_RECEIVED` events. Kills the process on timeout or stop request. |
-| `proxy_injector.py` | Before execution, rewrites the code source so `import turtle` is replaced by the injected proxy. This intercepts all turtle calls without the student changing anything. |
-| `output_parser.py` | Reads lines from stdout and detects JSON command objects (e.g. `{"cmd": "forward", "args": [100]}`). Fires `CANVAS_COMMAND` events for the active canvas feature to consume. |
+| `main_window.py` | `QMainWindow`. Creates `QSplitter` layout, instantiates features in `_load_features()`, wires file dialogs. The **only** place features are instantiated. |
+| `toolbar.py` | `QToolBar` with Run (F5) / Stop (F6) / New / Open / Save `QAction`s. Fires events on the bus. |
+| `editor_panel.py` | `QPlainTextEdit` + `PythonHighlighter(QSyntaxHighlighter)` + `_LineNumberArea` gutter. 300 ms debounced `code_changed` signal. |
+| `terminal_panel.py` | `TerminalPanel(QWidget)`: always-visible "Output" header with a ▾/▸ toggle button + collapsible `_OutputView(QPlainTextEdit)`. |
+| `sidebar_panel.py` | VS Code-style: 56 px `_ActivityBar` strip + 240 px collapsible `_ContentPanel`. Click active button again to collapse. |
 
-#### Execution Flow
+#### Window layout
 
 ```
-[Run button]
-    │
-    ▼
-toolbar.py fires EXECUTION_REQUESTED
-    │
-    ▼
-runner.py receives event
-  → proxy_injector rewrites student code
-  → subprocess launched (timeout + memory cap)
-  → stdout lines → output_parser
-      → plain text  → STDOUT_RECEIVED  → terminal_panel displays it
-      → JSON object → CANVAS_COMMAND   → turtle_canvas renders it (GLib.idle_add)
+┌─────────────────────────────────────────────────────────┐
+│  QToolBar (Run · Stop · New · Open · Save)              │
+├────┬────────────┬────────────────────────────────────────┤
+│ 56 │  Content   │  EditorPanel (QPlainTextEdit)          │
+│ px │  Panel     │  + line-number gutter                  │
+│Act.│  (240 px,  ├────────────────────────────────────────┤
+│Bar │  toggle)   │  TerminalPanel                         │
+│    │            │  ┌─ Output ──────────────────── [▾] ─┐ │
+│    │            │  │  _OutputView (collapsible)        │ │
+└────┴────────────┴──┴───────────────────────────────────┴─┘
+```
+
+---
+
+### `execution/` — Code Runner
+
+Runs student code in a sandboxed `QProcess`. Never blocks the UI. Imports `core/` only.
+
+| File | Purpose |
+|------|---------|
+| `runner.py` | Listens to `execution_requested`. Writes code to a temp file via `proxy_injector`, launches `QProcess`, reads stdout/stderr line-by-line. 30 s hard timeout via `QTimer`. Emits `execution_started/finished`. |
+| `proxy_injector.py` | Prepends a `sys.path` preamble so `import turtle` resolves to the bundled proxy instead of the stdlib turtle. Writes the modified code to a `NamedTemporaryFile`. |
+| `output_parser.py` | Classifies each stdout line: plain text → `stdout_received`, JSON object → `canvas_command`. |
+
+#### Execution flow
+
+```
+[Run button]  →  execution_requested(code)
+                       │
+                 runner.py receives
+                   → proxy_injector writes temp file
+                   → QProcess.start("python", [temp_file])
+                   → stdout line-by-line → output_parser
+                         plain text  →  stdout_received  →  TerminalPanel
+                         JSON object →  canvas_command   →  TurtleCanvas (Phase 2)
+                   → QTimer 30 s    →  process.kill()
+                   → process done   →  execution_finished(exit_code)
 ```
 
 ---
 
 ### `features/` — Hard-Coded Product Features
 
-Each feature is a self-contained package that implements `IExtension`. Features subscribe to events in `activate()` and clean up in `deactivate()`. Features **never import from each other**.
+Each feature is a self-contained package that implements `IFeature`. Features **never import each other**.
 
-#### `features/turtle_canvas/`
+#### `IFeature` contract
 
-Renders Turtle Graphics commands sent from the student's subprocess.
+```python
+class IFeature(QObject):
 
-| File | Purpose |
-|------|---------|
-| `feature.py` | Implements `IExtension`. Subscribes to `CANVAS_COMMAND` events. Returns the canvas widget for the right panel. |
-| `canvas.py` | `Gtk.DrawingArea` backed by a Cairo surface. Exposes `draw_command(cmd)`. |
-| `renderer.py` | Translates JSON command objects (`forward`, `right`, `penup`, `color`, …) into Cairo draw calls on the canvas. |
-| `turtle_proxy.py` | The proxy script injected into student code. Overrides the `turtle` module API and outputs JSON to stdout instead of opening a window. |
+    @abstractmethod
+    def activate(self) -> None:
+        """Connect to EventBus signals, allocate resources."""
 
-#### `features/curriculum/`
+    @abstractmethod
+    def deactivate(self) -> None:
+        """Disconnect all signals and release resources."""
+
+    @abstractmethod
+    def get_canvas_widget(self) -> QWidget | None:
+        """Widget for the right canvas panel. None if not applicable."""
+
+    @abstractmethod
+    def get_sidebar_widget(self) -> QWidget | None:
+        """Widget for the sidebar panel. None if not applicable."""
+```
+
+#### `features/curriculum/` *(Phase 3 — stub)*
 
 Manages educational projects and tracks student progress.
 
-| File | Purpose |
-|------|---------|
-| `feature.py` | Implements `IExtension`. Returns the curriculum panel as the sidebar widget. |
-| `curriculum_panel.py` | GTK4 sidebar UI: level selector and project list. Fires `PROJECT_OPENED` events when a project is chosen. |
-| `models.py` | Pure Python dataclasses: `Level`, `Project`, `StudentProfile`. No GTK, no DB. |
-| `storage.py` | SQLite persistence via Python `sqlite3`. Stores student profiles, completed levels, and error history. |
-| `projects/` | Bundled project templates, one folder per level. Each project has a `.py` starter file and a `meta.json` (title, description, hints). |
+| File | Status | Purpose |
+|------|--------|---------|
+| `feature.py` | stub | `CurriculumFeature(IFeature)` — sidebar placeholder widget wired into activity bar |
+| `curriculum_panel.py` | planned | `QTreeWidget`-based level/project browser; emits `project_opened` |
+| `models.py` | planned | Dataclasses: `Level`, `Project`, `StudentProfile` |
+| `storage.py` | planned | SQLite persistence via `sqlite3`: profiles, completed levels, error history |
+| `projects/` | planned | Bundled `.py` starter files + `meta.json` per project |
 
-```
-projects/
-├── level_1/    ← Beginner: straight lines, basic shapes
-├── level_2/    ← Intermediate: loops, patterns
-└── level_3/    ← Advanced: functions, complex drawings
-```
+#### `features/turtle_canvas/` *(Phase 2 — stub, disconnected)*
+
+Renders Turtle Graphics commands from student subprocess output.
+
+| File | Status | Purpose |
+|------|--------|---------|
+| `feature.py` | stub | `TurtleCanvasFeature(IFeature)` — not wired to UI yet |
+| `canvas.py` | planned | `QWidget` + `QPainter` drawing surface |
+| `renderer.py` | planned | JSON command → `QPainter` draw calls (`forward`, `right`, `color`, …) |
+| `turtle_proxy.py` | planned | Injected proxy: overrides `turtle` API, outputs JSON to stdout |
 
 ---
 
 ### `utils/` — Shared Stateless Utilities
 
-Pure helper modules. No GTK, no events, no state. Safe to import from any layer.
+No Qt widgets, no events, no state. Safe to import from any layer.
 
-| File | Purpose |
-|------|---------|
-| `linter.py` | Runs `PyFlakes` and Python `ast` on the editor content. Returns a list of `LintError` objects. |
-| `completer.py` | Wraps `Jedi` to provide autocompletion suggestions at a given cursor position. |
-
----
-
-### `data/` — Bundled Resources
-
-Non-Python files shipped with the application.
-
-| Folder | Contents |
-|--------|---------|
-| `icons/` | SVG icons for the toolbar and UI elements. |
-| `styles/` | CSS files for Libadwaita theme overrides and custom widget styling. |
-| `gschemas/` | GSettings XML schema for any settings that benefit from system-level storage. |
+| File | Status | Purpose |
+|------|--------|---------|
+| `linter.py` | stub | `PyFlakes` + `ast` → `list[LintError]` |
+| `completer.py` | stub | Jedi completions at `(code, line, col)` cursor position |
 
 ---
 
 ## Layering Rules
 
-These rules must not be broken. They keep the app maintainable and RAM-efficient.
-
 ```
+theme/       ←  no internal imports
 core/        ←  no internal imports
   ↑
-ui/          ←  imports core/ only
+ui/          ←  imports core/ + theme/ only
 execution/   ←  imports core/ only
 utils/       ←  imports nothing inside neo_code/
   ↑
-features/*   ←  imports core/, execution/, utils/ — never other features
+features/*   ←  imports core/ + execution/ + utils/ + theme/ — never other features
 ```
 
-> `main_window.py` is the **only** place where features are instantiated and wired together.
+> `main_window._load_features()` is the **only** place features are instantiated and wired into the layout.
 
 ---
 
-## IExtension Contract
+## Phase Roadmap
 
-Defined in `core/extension_interface.py`. Any future dynamically loaded plugin must satisfy this interface.
-
-```python
-from abc import ABC, abstractmethod
-from gi.repository import Gtk
-
-class IExtension(ABC):
-
-    @abstractmethod
-    def activate(self, event_bus) -> None:
-        """Subscribe to events, build internal state."""
-
-    @abstractmethod
-    def deactivate(self) -> None:
-        """Unsubscribe from events, release resources."""
-
-    @abstractmethod
-    def get_canvas_widget(self) -> Gtk.Widget | None:
-        """Widget to place in the right (canvas) panel. None if not applicable."""
-
-    @abstractmethod
-    def get_sidebar_widget(self) -> Gtk.Widget | None:
-        """Widget to place in the left sidebar. None if not applicable."""
-```
-
----
-
-## Phase Roadmap Mapping
-
-| Phase | Description | Folders |
-|-------|-------------|---------|
-| **1** | Core IDE Foundation | `core/`, `ui/`, `execution/` |
-| **2** | Turtle Visual Output | `features/turtle_canvas/` |
-| **3** | Curriculum & Student Profiles | `features/curriculum/` + SQLite |
-| **4** | Future Extensions | New packages implementing `IExtension` |
+| Phase | Status | Description | Primary folders |
+|-------|--------|-------------|-----------------|
+| **1** | ✅ Done | PyQt6 IDE foundation: editor, terminal, toolbar, activity bar sidebar, theme, event bus, execution runner | `core/`, `ui/`, `execution/`, `theme/` |
+| **2** | 🔲 Planned | Turtle visual output: canvas renderer, proxy injection | `features/turtle_canvas/` |
+| **3** | 🔲 Planned | Curriculum & student profiles: lesson browser, SQLite progress tracking | `features/curriculum/` |
+| **4** | 🔲 Future | Dynamic extensions via `IFeature` | New packages under `features/` |
