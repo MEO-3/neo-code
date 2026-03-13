@@ -20,6 +20,7 @@ pip3 install --break-system-packages "jedi>=0.19.0" "pyflakes>=3.2.0"
 
 # Install neo-code itself
 echo "[3/3] Installing neo-code..."
+cd ./neo-code
 pip3 install --break-system-packages --no-deps .
 
 # Add pip user bin to PATH if not already present
