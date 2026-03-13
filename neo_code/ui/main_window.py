@@ -26,6 +26,7 @@ from neo_code.ui.toolbar import Toolbar
 from neo_code.ui.editor_panel import EditorPanel
 from neo_code.ui.terminal_panel import TerminalPanel
 from neo_code.ui.sidebar_panel import SidebarPanel
+from neo_code.ui.repl_panel import ReplPanel
 
 
 class MainWindow(QMainWindow):
@@ -69,9 +70,13 @@ class MainWindow(QMainWindow):
         self._editor_terminal_splitter.setChildrenCollapsible(False)
         self._editor_terminal_splitter.addWidget(self._editor)
 
+        self._repl = ReplPanel()
+        self._repl.hide()
+        self._editor_terminal_splitter.insertWidget(0, self._repl)
+
         self._terminal = TerminalPanel()
         self._editor_terminal_splitter.addWidget(self._terminal)
-        self._editor_terminal_splitter.setSizes([600, 160])
+        self._editor_terminal_splitter.setSizes([0, 600, 160])
         editor_terminal_splitter = self._editor_terminal_splitter
 
         outer_splitter.addWidget(editor_terminal_splitter)
@@ -99,6 +104,7 @@ class MainWindow(QMainWindow):
         event_bus.file_saved.connect(self._on_file_saved)
         event_bus.file_opened.connect(self._on_file_opened)
         event_bus.file_new.connect(self._on_file_new)
+        event_bus.repl_mode_changed.connect(self._on_repl_mode_changed)
 
     # ── File dialogs ──────────────────────────────────────────────────────────
 
@@ -137,6 +143,12 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def _on_file_new(self) -> None:
         self.setWindowTitle("NEO Code — Untitled")
+
+    @pyqtSlot(bool)
+    def _on_repl_mode_changed(self, active: bool) -> None:
+        self._editor.setVisible(not active)
+        self._repl.setVisible(active)
+        self._terminal.setVisible(not active)
 
     # ── Cleanup ───────────────────────────────────────────────────────────────
 

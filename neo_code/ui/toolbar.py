@@ -4,7 +4,7 @@ Toolbar — QToolBar with Run / Stop / New / Open / Save actions.
 Connects to EventBus signals for execution state changes.
 """
 
-from PyQt5.QtWidgets import QToolBar, QAction
+from PyQt5.QtWidgets import QToolBar, QAction, QWidget, QSizePolicy
 
 from neo_code.core.event_bus import event_bus
 from neo_code.theme.colors import colors
@@ -48,6 +48,22 @@ _TOOLBAR_STYLE = f"""
     }}
     QToolButton:disabled {{
         color: {colors.text_disabled};
+    }}
+    QToolButton[text="⚡  REPL"] {{
+        background-color: transparent;
+        color: {colors.text};
+        border: 1px solid {colors.border};
+        border-radius: 4px;
+        padding: 4px 12px;
+        font-weight: bold;
+    }}
+    QToolButton[text="⚡  REPL"]:hover {{
+        background-color: {colors.surface_alt};
+    }}
+    QToolButton[text="⚡  REPL"]:checked {{
+        background-color: {colors.primary};
+        color: {colors.primary_text};
+        border: 1px solid {colors.primary};
     }}
 """
 
@@ -98,11 +114,22 @@ class Toolbar(QToolBar):
         )
         self.addAction(self._act_stop)
 
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.addWidget(spacer)
+
+        self._act_repl = QAction("⚡  REPL", self)
+        self._act_repl.setCheckable(True)
+        self._act_repl.setShortcut("F9")
+        self._act_repl.toggled.connect(lambda on: event_bus.repl_mode_changed.emit(on))
+        self.addAction(self._act_repl)
+
     # ── Signals ───────────────────────────────────────────────────────────────
 
     def _connect_signals(self) -> None:
         event_bus.execution_started.connect(self._on_execution_started)
         event_bus.execution_finished.connect(self._on_execution_finished)
+        event_bus.repl_mode_changed.connect(self._on_repl_mode_changed)
 
     # ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -115,4 +142,8 @@ class Toolbar(QToolBar):
 
     def _on_execution_finished(self, _exit_code: int) -> None:
         self._act_run.setEnabled(True)
+        self._act_stop.setEnabled(False)
+
+    def _on_repl_mode_changed(self, active: bool) -> None:
+        self._act_run.setEnabled(not active)
         self._act_stop.setEnabled(False)

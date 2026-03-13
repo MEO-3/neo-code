@@ -32,6 +32,7 @@ class EventBus(QObject):
     execution_stop_requested = pyqtSignal()
     execution_started = pyqtSignal()
     execution_finished = pyqtSignal(int)        # (exit_code,)
+    repl_mode_changed = pyqtSignal(bool)        # True = REPL active, False = script mode
 
     # ── Subprocess output ──────────────────────────────────────────────────
     stdout_received = pyqtSignal(str)           # (text,)
