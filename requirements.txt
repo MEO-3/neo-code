@@ -1,4 +1,4 @@
 # Install with: pip install -r requirements.txt
-PyQt6>=6.6.0       # Qt6 GUI framework — includes QtWidgets, QtGui, QtCore
+PyQt5==5.15.10      # Qt5 GUI framework — includes QtWidgets, QtGui, QtCore
 Jedi>=0.19.0       # Lightweight local autocompletion
 pyflakes>=3.2.0    # Static analysis / linting

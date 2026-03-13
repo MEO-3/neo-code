@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QLabel
-from PyQt6.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QLabel
+from PyQt5.QtCore import Qt
 
 from neo_code.core.extension_interface import IFeature
 from neo_code.theme.colors import colors
@@ -28,7 +28,7 @@ class _SidebarPlaceholder(QWidget):
         super().__init__()
         self.setStyleSheet(f"background-color: {colors.panel_bg};")
         label = QLabel("Lessons", self)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setAlignment(Qt.AlignCenter)
         label.setStyleSheet(f"color: {colors.text_secondary};")
         self._label = label
 

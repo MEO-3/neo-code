@@ -14,12 +14,12 @@ The activity bar is a narrow strip of NavButtons (icon + label).
 Clicking the active button collapses the panel (toggle).
 """
 
-from PyQt6.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget,
     QPushButton, QLabel, QSizePolicy, QFrame,
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt5.QtCore import Qt, QSize, pyqtSignal
+from PyQt5.QtGui import QFont
 
 from dataclasses import dataclass
 
@@ -70,30 +70,30 @@ class _NavButton(QPushButton):
         super().__init__()
         self.setFixedWidth(56)
         self.setCheckable(True)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setCursor(Qt.PointingHandCursor)
         self.setToolTip(label)
 
         # Stack icon + label vertically inside the button
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 4, 0, 4)
         layout.setSpacing(2)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setAlignment(Qt.AlignCenter)
 
         icon_lbl = QLabel(icon)
-        icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_lbl.setAlignment(Qt.AlignCenter)
         icon_font = QFont()
         icon_font.setPointSize(18)
         icon_lbl.setFont(icon_font)
-        icon_lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        icon_lbl.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(icon_lbl)
 
         text_lbl = QLabel(label)
-        text_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        text_lbl.setAlignment(Qt.AlignCenter)
         text_font = QFont()
         text_font.setPointSize(8)
         text_lbl.setFont(text_font)
-        text_lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        text_lbl.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(text_lbl)
 
         # Keep child label colours in sync with button state
@@ -128,7 +128,7 @@ class _ActivityBar(QWidget):
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 8, 0, 8)
         self._layout.setSpacing(0)
-        self._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self._layout.setAlignment(Qt.AlignTop)
 
         self._buttons: dict[str, _NavButton] = {}
         self._active_key: str | None = None
@@ -179,7 +179,7 @@ class _ContentPanel(QWidget):
         self._title = QLabel("")
         self._title.setFixedHeight(32)
         self._title.setContentsMargins(12, 0, 0, 0)
-        self._title.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self._title.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         title_font = QFont()
         title_font.setPointSize(9)
         title_font.setBold(True)
@@ -191,7 +191,7 @@ class _ContentPanel(QWidget):
         layout.addWidget(self._title)
 
         sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet("color: #313244;")
         layout.addWidget(sep)
 
@@ -231,7 +231,7 @@ class SidebarPanel(QWidget):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

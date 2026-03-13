@@ -7,9 +7,9 @@ Connects to:
   event_bus.execution_started — clears the terminal
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit, QFrame, QToolButton, QSizePolicy
-from PyQt6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont
-from PyQt6.QtCore import pyqtSlot, Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit, QFrame, QToolButton, QSizePolicy
+from PyQt5.QtGui import QColor, QTextCursor, QTextCharFormat, QFont
+from PyQt5.QtCore import pyqtSlot, Qt
 
 from neo_code.core.event_bus import event_bus
 from neo_code.theme.colors import colors
@@ -116,7 +116,7 @@ class _OutputView(QPlainTextEdit):
         self.setReadOnly(True)
         self.setMaximumBlockCount(2000)
         font = QFont("Monospace", 12)
-        font.setStyleHint(QFont.StyleHint.Monospace)
+        font.setStyleHint(QFont.Monospace)
         self.setFont(font)
         self.setStyleSheet(f"""
             QPlainTextEdit {{
@@ -143,7 +143,7 @@ class _OutputView(QPlainTextEdit):
 
     def _append(self, text: str, fmt: QTextCharFormat) -> None:
         cursor = self.textCursor()
-        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.movePosition(QTextCursor.End)
         cursor.insertText(text + "\n", fmt)
         self.setTextCursor(cursor)
         self.ensureCursorVisible()

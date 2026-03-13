@@ -13,12 +13,12 @@ Connects to:
 import keyword
 import re
 
-from PyQt6.QtWidgets import QPlainTextEdit, QWidget, QVBoxLayout
-from PyQt6.QtGui import (
+from PyQt5.QtWidgets import QPlainTextEdit, QWidget, QVBoxLayout
+from PyQt5.QtGui import (
     QSyntaxHighlighter, QTextCharFormat, QColor, QFont,
     QTextDocument, QPainter, QPaintEvent, QResizeEvent,
 )
-from PyQt6.QtCore import Qt, QTimer, QRect, QSize, pyqtSlot
+from PyQt5.QtCore import Qt, QTimer, QRect, QSize, pyqtSlot
 
 from neo_code.core.event_bus import event_bus
 from neo_code.core.settings import Settings
@@ -39,7 +39,7 @@ class PythonHighlighter(QSyntaxHighlighter):
         fmt = QTextCharFormat()
         fmt.setForeground(QColor(color))
         if bold:
-            fmt.setFontWeight(QFont.Weight.Bold)
+            fmt.setFontWeight(QFont.Bold)
         if italic:
             fmt.setFontItalic(True)
         return fmt
@@ -119,15 +119,15 @@ class EditorPanel(QPlainTextEdit):
 
     def _apply_style(self) -> None:
         font = QFont("Monospace", self._settings.font_size)
-        font.setStyleHint(QFont.StyleHint.Monospace)
+        font.setStyleHint(QFont.Monospace)
         self.setFont(font)
         self.setTabStopDistance(
             self.fontMetrics().horizontalAdvance(" ") * self._settings.tab_width
         )
         self.setLineWrapMode(
-            QPlainTextEdit.LineWrapMode.WidgetWidth
+            QPlainTextEdit.WidgetWidth
             if self._settings.word_wrap
-            else QPlainTextEdit.LineWrapMode.NoWrap
+            else QPlainTextEdit.NoWrap
         )
         self.setStyleSheet(f"""
             QPlainTextEdit {{
@@ -183,7 +183,7 @@ class EditorPanel(QPlainTextEdit):
                     0, top,
                     self._line_number_area.width() - 6,
                     line_height,
-                    Qt.AlignmentFlag.AlignRight,
+                    Qt.AlignRight,
                     str(block_number + 1),
                 )
             block = block.next()

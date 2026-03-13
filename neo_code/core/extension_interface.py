@@ -9,8 +9,8 @@ Inherits QObject so features can define their own Qt signals if needed.
 
 from abc import abstractmethod
 
-from PyQt6.QtCore import QObject
-from PyQt6.QtWidgets import QWidget
+from PyQt5.QtCore import QObject
+from PyQt5.QtWidgets import QWidget
 
 
 class IFeature(QObject):

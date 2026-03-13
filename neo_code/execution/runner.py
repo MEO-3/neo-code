@@ -20,7 +20,7 @@ import sys
 import os
 from pathlib import Path
 
-from PyQt6.QtCore import QObject, QProcess, pyqtSlot
+from PyQt5.QtCore import QObject, QProcess, pyqtSlot
 
 from neo_code.core.event_bus import event_bus
 from neo_code.execution.proxy_injector import prepare_script
@@ -43,13 +43,13 @@ class Runner(QObject):
 
     @pyqtSlot(str)
     def _on_execution_requested(self, code: str) -> None:
-        if self._process and self._process.state() != QProcess.ProcessState.NotRunning:
+        if self._process and self._process.state() != QProcess.NotRunning:
             return  # already running
 
         self._tmp_script = prepare_script(code)
 
         self._process = QProcess(self)
-        self._process.setProcessChannelMode(QProcess.ProcessChannelMode.SeparateChannels)
+        self._process.setProcessChannelMode(QProcess.SeparateChannels)
         self._process.readyReadStandardOutput.connect(self._on_stdout)
         self._process.readyReadStandardError.connect(self._on_stderr)
         self._process.finished.connect(self._on_finished)
@@ -58,7 +58,7 @@ class Runner(QObject):
         self._process.start(sys.executable, [str(self._tmp_script)])
 
         # Safety timeout
-        from PyQt6.QtCore import QTimer
+        from PyQt5.QtCore import QTimer
         self._timeout_timer = QTimer(self)
         self._timeout_timer.setSingleShot(True)
         self._timeout_timer.setInterval(_TIMEOUT_MS)
@@ -99,7 +99,7 @@ class Runner(QObject):
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _kill_process(self) -> None:
-        if self._process and self._process.state() != QProcess.ProcessState.NotRunning:
+        if self._process and self._process.state() != QProcess.NotRunning:
             self._process.kill()
             self._process.waitForFinished(1000)
 

@@ -4,8 +4,7 @@ Toolbar — QToolBar with Run / Stop / New / Open / Save actions.
 Connects to EventBus signals for execution state changes.
 """
 
-from PyQt6.QtWidgets import QToolBar
-from PyQt6.QtGui import QAction
+from PyQt5.QtWidgets import QToolBar, QAction
 
 from neo_code.core.event_bus import event_bus
 from neo_code.theme.colors import colors

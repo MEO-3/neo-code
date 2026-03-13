@@ -14,10 +14,10 @@ Layout:
 Hard-coded features are instantiated here and their widgets placed into layout.
 """
 
-from PyQt6.QtWidgets import (
+from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QSplitter, QVBoxLayout, QFileDialog,
 )
-from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt5.QtCore import Qt, pyqtSlot
 
 from neo_code.core.event_bus import event_bus
 from neo_code.core.file_manager import FileManager
@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
         root_layout.setSpacing(0)
 
         # Outer splitter: sidebar | editor+terminal
-        outer_splitter = QSplitter(Qt.Orientation.Horizontal)
+        outer_splitter = QSplitter(Qt.Horizontal)
         outer_splitter.setHandleWidth(1)
 
         self._sidebar = SidebarPanel()
@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
         outer_splitter.setCollapsible(0, False)
 
         # Editor (top) | terminal (bottom)
-        self._editor_terminal_splitter = QSplitter(Qt.Orientation.Vertical)
+        self._editor_terminal_splitter = QSplitter(Qt.Vertical)
         self._editor_terminal_splitter.setChildrenCollapsible(False)
         self._editor_terminal_splitter.addWidget(self._editor)
 
