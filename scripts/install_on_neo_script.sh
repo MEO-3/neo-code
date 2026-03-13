@@ -28,7 +28,7 @@ PIP_BIN="$HOME/.local/bin"
 if [[ ":$PATH:" != *":$PIP_BIN:"* ]]; then
     echo "Adding $PIP_BIN to PATH..."
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-    export PATH="$PIP_BIN:$PATH"
+    export PATH="$PATH:$PIP_BIN"
 fi
 
 echo ""
