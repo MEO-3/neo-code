@@ -24,11 +24,11 @@ cd ./neo-code
 pip3 install --break-system-packages --no-deps .
 
 # Add pip user bin to PATH if not already present
-PIP_BIN="$HOME/.local/bin"
-if [[ ":$PATH:" != *":$PIP_BIN:"* ]]; then
-    echo "Adding $PIP_BIN to PATH..."
+BIN_DIR="/home/neo/.local/bin"
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+    echo "Adding $BIN_DIR to PATH..."
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-    export PATH="$PATH:$PIP_BIN"
+    export PATH="$PATH:$BIN_DIR"
 fi
 
 echo ""
