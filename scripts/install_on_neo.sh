@@ -14,16 +14,20 @@ sudo apt-get install -y python3-pyqt5
 # Install pip if not present
 sudo apt-get install -y python3-pip
 
+# Force pip to use a fresh, disposable cache directory
+PIP_CACHE_DIR="$(mktemp -d)"
+export PIP_CACHE_DIR
+export PIP_NO_CACHE_DIR=1
+trap 'rm -rf "$PIP_CACHE_DIR"' EXIT
+
 # Install remaining Python dependencies via pip
 echo "[2/3] Installing Jedi and pyflakes via pip..."
-pip3 install --break-system-packages "jedi>=0.19.0" "pyflakes>=3.2.0"
+pip3 install --break-system-packages --no-cache-dir "jedi>=0.19.0" "pyflakes>=3.2.0"
 
 # Install neo-code itself
 echo "[3/3] Installing neo-code..."
-# Work around corrupted pip cache metadata (JSONDecodeError)
-pip3 cache purge || true
 cd ./neo-code
-pip3 install --break-system-packages --no-deps .
+pip3 install --break-system-packages --no-deps --no-cache-dir .
 
 # Add pip user bin to PATH if not already present
 BIN_DIR="$HOME/.local/bin"
