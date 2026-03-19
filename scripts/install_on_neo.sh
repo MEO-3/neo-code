@@ -20,6 +20,8 @@ pip3 install --break-system-packages "jedi>=0.19.0" "pyflakes>=3.2.0"
 
 # Install neo-code itself
 echo "[3/3] Installing neo-code..."
+# Work around corrupted pip cache metadata (JSONDecodeError)
+pip3 cache purge || true
 cd ./neo-code
 pip3 install --break-system-packages --no-deps .
 
