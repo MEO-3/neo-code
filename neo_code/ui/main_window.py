@@ -106,6 +106,11 @@ class MainWindow(QMainWindow):
             self._lessons_panel.back_visibility_changed.connect(
                 self._on_lesson_back_visibility_changed
             )
+        self._robot_panel = self._robot.get_sidebar_widget()
+        if self._robot_panel is not None and hasattr(self._robot_panel, "back_visibility_changed"):
+            self._robot_panel.back_visibility_changed.connect(
+                self._on_robot_back_visibility_changed
+            )
 
     # ── Signal connections ────────────────────────────────────────────────────
 
@@ -165,10 +170,13 @@ class MainWindow(QMainWindow):
     @pyqtSlot(object)
     def _on_sidebar_active_changed(self, key) -> None:
         self._active_sidebar_key = key
-        if key != "lessons":
-            self._sidebar.set_header_back(False, None)
-        else:
+        if key == "lessons":
             self._sync_lesson_back_button()
+            return
+        if key == "robot":
+            self._sync_robot_back_button()
+            return
+        self._sidebar.set_header_back(False, None)
 
     def _sync_lesson_back_button(self) -> None:
         if self._lessons_panel is None:
@@ -187,6 +195,25 @@ class MainWindow(QMainWindow):
         if self._lessons_panel is None:
             return
         callback = self._lessons_panel.handle_back if visible and hasattr(self._lessons_panel, "handle_back") else None
+        self._sidebar.set_header_back(visible, callback)
+
+    def _sync_robot_back_button(self) -> None:
+        if self._robot_panel is None:
+            return
+        if hasattr(self._robot_panel, "is_detail_visible"):
+            visible = self._robot_panel.is_detail_visible()
+        else:
+            visible = False
+        callback = self._robot_panel.handle_back if visible and hasattr(self._robot_panel, "handle_back") else None
+        self._sidebar.set_header_back(visible, callback)
+
+    @pyqtSlot(bool)
+    def _on_robot_back_visibility_changed(self, visible: bool) -> None:
+        if getattr(self, "_active_sidebar_key", None) != "robot":
+            return
+        if self._robot_panel is None:
+            return
+        callback = self._robot_panel.handle_back if visible and hasattr(self._robot_panel, "handle_back") else None
         self._sidebar.set_header_back(visible, callback)
 
     # ── Cleanup ───────────────────────────────────────────────────────────────
