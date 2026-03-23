@@ -5,6 +5,7 @@ Starts `python3 -u -i` on show, kills it on hide.
 """
 
 import re
+import sys
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -96,7 +97,7 @@ class ReplPanel(QWidget):
 
         submit_btn = QToolButton()
         submit_btn.setText("↵")
-        submit_btn.setToolTip("Send input (Enter)")
+        submit_btn.setToolTip("Gửi lệnh (Enter)")
         submit_btn.setFixedSize(26, 26)
         submit_btn.setStyleSheet(f"""
             QToolButton {{
@@ -127,7 +128,7 @@ class ReplPanel(QWidget):
         self._process.finished.connect(self._on_finished)
         self._output.clear()
         self._input.setEnabled(True)
-        self._process.start("python3", ["-u", "-i"])
+        self._process.start(sys.executable, ["-u", "-i"])
 
     def _stop_process(self) -> None:
         if self._process is None:
@@ -193,7 +194,7 @@ class ReplPanel(QWidget):
 
     @pyqtSlot(int, QProcess.ExitStatus)
     def _on_finished(self, _code: int, _status) -> None:
-        self._append("[REPL session ended]", self._fmt_stderr)
+        self._append("[Phiên tương tác đã kết thúc]", self._fmt_stderr)
         self._input.setEnabled(False)
 
     @pyqtSlot()

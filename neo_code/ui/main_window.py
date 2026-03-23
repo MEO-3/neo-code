@@ -34,6 +34,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._settings = Settings()
         self._file_manager = FileManager()
+        self._active_sidebar_key: str | None = None
 
         self.setWindowTitle("NEO Code")
         self.resize(1280, 800)
@@ -77,9 +78,7 @@ class MainWindow(QMainWindow):
         self._terminal = TerminalPanel()
         self._editor_terminal_splitter.addWidget(self._terminal)
         self._editor_terminal_splitter.setSizes([0, 600, 160])
-        editor_terminal_splitter = self._editor_terminal_splitter
-
-        outer_splitter.addWidget(editor_terminal_splitter)
+        outer_splitter.addWidget(self._editor_terminal_splitter)
         outer_splitter.setSizes([56, 1000])
         self._outer_splitter = outer_splitter
 
@@ -88,13 +87,25 @@ class MainWindow(QMainWindow):
     # ── Feature wiring ────────────────────────────────────────────────────────
 
     def _load_features(self) -> None:
-        from neo_code.features.curriculum.feature import CurriculumFeature
+        from neo_code.features.lessons.feature import LessonsFeature
+        from neo_code.features.robot.feature import RobotFeature
 
-        self._curriculum = CurriculumFeature()
-        self._curriculum.activate()
+        self._lessons = LessonsFeature()
+        self._lessons.activate()
 
-        self._sidebar.add_feature(self._curriculum, key="lessons", icon="📖", label="Lessons")
+        self._robot = RobotFeature()
+        self._robot.activate()
+
+        self._sidebar.add_feature(self._lessons, key="lessons", icon="📖", label="Bài học")
+        self._sidebar.add_feature(self._robot, key="robot", icon="🤖", label="Rô-bốt")
         self._sidebar.set_active("lessons")
+        self._active_sidebar_key = "lessons"
+
+        self._lessons_panel = self._lessons.get_sidebar_widget()
+        if self._lessons_panel is not None and hasattr(self._lessons_panel, "back_visibility_changed"):
+            self._lessons_panel.back_visibility_changed.connect(
+                self._on_lesson_back_visibility_changed
+            )
 
     # ── Signal connections ────────────────────────────────────────────────────
 
@@ -105,15 +116,16 @@ class MainWindow(QMainWindow):
         event_bus.file_opened.connect(self._on_file_opened)
         event_bus.file_new.connect(self._on_file_new)
         event_bus.repl_mode_changed.connect(self._on_repl_mode_changed)
+        self._sidebar.active_changed.connect(self._on_sidebar_active_changed)
 
     # ── File dialogs ──────────────────────────────────────────────────────────
 
     @pyqtSlot()
     def _on_open_dialog(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open Python File",
+            self, "Mở tệp Python",
             self._settings.last_open_dir,
-            "Python Files (*.py);;All Files (*)"
+            "Tệp Python (*.py);;Tất cả tệp (*)"
         )
         if path:
             self._settings.last_open_dir = str(__import__("pathlib").Path(path).parent)
@@ -125,9 +137,9 @@ class MainWindow(QMainWindow):
             self._file_manager.save_file(self._editor.get_code())
         else:
             path, _ = QFileDialog.getSaveFileName(
-                self, "Save Python File",
+                self, "Lưu tệp Python",
                 self._settings.last_open_dir + "/main.py",
-                "Python Files (*.py);;All Files (*)"
+                "Tệp Python (*.py);;Tất cả tệp (*)"
             )
             if path:
                 self._file_manager.save_file(self._editor.get_code(), path)
@@ -142,7 +154,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def _on_file_new(self) -> None:
-        self.setWindowTitle("NEO Code — Untitled")
+        self.setWindowTitle("NEO Code — Chưa đặt tên")
 
     @pyqtSlot(bool)
     def _on_repl_mode_changed(self, active: bool) -> None:
@@ -150,9 +162,37 @@ class MainWindow(QMainWindow):
         self._repl.setVisible(active)
         self._terminal.setVisible(not active)
 
+    @pyqtSlot(object)
+    def _on_sidebar_active_changed(self, key) -> None:
+        self._active_sidebar_key = key
+        if key != "lessons":
+            self._sidebar.set_header_back(False, None)
+        else:
+            self._sync_lesson_back_button()
+
+    def _sync_lesson_back_button(self) -> None:
+        if self._lessons_panel is None:
+            return
+        if hasattr(self._lessons_panel, "is_detail_visible"):
+            visible = self._lessons_panel.is_detail_visible()
+        else:
+            visible = False
+        callback = self._lessons_panel.handle_back if visible and hasattr(self._lessons_panel, "handle_back") else None
+        self._sidebar.set_header_back(visible, callback)
+
+    @pyqtSlot(bool)
+    def _on_lesson_back_visibility_changed(self, visible: bool) -> None:
+        if getattr(self, "_active_sidebar_key", None) != "lessons":
+            return
+        if self._lessons_panel is None:
+            return
+        callback = self._lessons_panel.handle_back if visible and hasattr(self._lessons_panel, "handle_back") else None
+        self._sidebar.set_header_back(visible, callback)
+
     # ── Cleanup ───────────────────────────────────────────────────────────────
 
     def closeEvent(self, event) -> None:
         self._settings.save()
-        self._curriculum.deactivate()
+        self._lessons.deactivate()
+        self._robot.deactivate()
         super().closeEvent(event)

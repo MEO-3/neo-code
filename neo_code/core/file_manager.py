@@ -42,7 +42,7 @@ class FileManager:
 
     @property
     def current_filename(self) -> str:
-        return self.current_path.name if self.current_path else "Untitled"
+        return self.current_path.name if self.current_path else "Chưa đặt tên"
 
     @property
     def has_file(self) -> bool:

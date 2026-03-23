@@ -26,30 +26,30 @@ _TOOLBAR_STYLE = f"""
     QToolButton:hover {{
         background-color: {colors.surface_alt};
     }}
-    QToolButton[text="▶  Run"] {{
+    QToolButton[text="▶  Chạy"] {{
         background-color: {colors.run_bg};
         color: {colors.run_text};
         font-weight: bold;
         border-radius: 4px;
         padding: 4px 14px;
     }}
-    QToolButton[text="▶  Run"]:hover {{
+    QToolButton[text="▶  Chạy"]:hover {{
         background-color: {colors.run_bg_hover};
     }}
-    QToolButton[text="■  Stop"] {{
+    QToolButton[text="■  Dừng"] {{
         background-color: {colors.stop_bg};
         color: {colors.stop_text};
         font-weight: bold;
         border-radius: 4px;
         padding: 4px 14px;
     }}
-    QToolButton[text="■  Stop"]:hover {{
+    QToolButton[text="■  Dừng"]:hover {{
         background-color: {colors.stop_bg_hover};
     }}
     QToolButton:disabled {{
         color: {colors.text_disabled};
     }}
-    QToolButton[text="⚡  REPL"] {{
+    QToolButton[text="⚡  Tương tác"] {{
         background-color: transparent;
         color: {colors.text};
         border: 1px solid {colors.border};
@@ -57,10 +57,10 @@ _TOOLBAR_STYLE = f"""
         padding: 4px 12px;
         font-weight: bold;
     }}
-    QToolButton[text="⚡  REPL"]:hover {{
+    QToolButton[text="⚡  Tương tác"]:hover {{
         background-color: {colors.surface_alt};
     }}
-    QToolButton[text="⚡  REPL"]:checked {{
+    QToolButton[text="⚡  Tương tác"]:checked {{
         background-color: {colors.primary};
         color: {colors.primary_text};
         border: 1px solid {colors.primary};
@@ -80,19 +80,19 @@ class Toolbar(QToolBar):
 
     def _build_actions(self) -> None:
         self.setStyleSheet(_TOOLBAR_STYLE)
-        self._act_new = QAction("New", self)
+        self._act_new = QAction("Mới", self)
         self._act_new.setShortcut("Ctrl+N")
         self._act_new.triggered.connect(lambda: event_bus.file_new.emit())
         self.addAction(self._act_new)
 
-        self._act_open = QAction("Open", self)
+        self._act_open = QAction("Mở", self)
         self._act_open.setShortcut("Ctrl+O")
         self._act_open.triggered.connect(
             lambda: event_bus.open_file_dialog_requested.emit()
         )
         self.addAction(self._act_open)
 
-        self._act_save = QAction("Save", self)
+        self._act_save = QAction("Lưu", self)
         self._act_save.setShortcut("Ctrl+S")
         self._act_save.triggered.connect(
             lambda: event_bus.save_file_dialog_requested.emit()
@@ -101,12 +101,12 @@ class Toolbar(QToolBar):
 
         self.addSeparator()
 
-        self._act_run = QAction("▶  Run", self)
+        self._act_run = QAction("▶  Chạy", self)
         self._act_run.setShortcut("F5")
         self._act_run.triggered.connect(self._on_run)
         self.addAction(self._act_run)
 
-        self._act_stop = QAction("■  Stop", self)
+        self._act_stop = QAction("■  Dừng", self)
         self._act_stop.setShortcut("F6")
         self._act_stop.setEnabled(False)
         self._act_stop.triggered.connect(
@@ -118,7 +118,7 @@ class Toolbar(QToolBar):
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.addWidget(spacer)
 
-        self._act_repl = QAction("⚡  REPL", self)
+        self._act_repl = QAction("⚡  Tương tác", self)
         self._act_repl.setCheckable(True)
         self._act_repl.setShortcut("F9")
         self._act_repl.toggled.connect(lambda on: event_bus.repl_mode_changed.emit(on))

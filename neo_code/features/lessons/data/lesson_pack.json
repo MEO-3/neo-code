@@ -1,0 +1,43 @@
+{
+  "worlds": [
+    {
+      "id": "world-1",
+      "title": "Thế giới 1 — Bắt đầu",
+      "lessons": [
+        {
+          "id": "w1-l1",
+          "title": "Bài 1 — Chào bạn",
+          "challenge": {
+            "goal": "Hãy làm cho máy tính nói 'Xin chào'.",
+            "hint": "Dùng hàm print() để hiển thị văn bản.",
+            "starter_code": "print(\"Xin chào\")"
+          }
+        },
+        {
+          "id": "w1-l2",
+          "title": "Bài 2 — Tên của bạn",
+          "challenge": {
+            "goal": "In ra tên của bạn.",
+            "hint": "Bạn có thể thay đổi nội dung trong print().",
+            "starter_code": "print(\"Tên của bạn\")"
+          }
+        }
+      ]
+    },
+    {
+      "id": "world-2",
+      "title": "Thế giới 2 — Biến số",
+      "lessons": [
+        {
+          "id": "w2-l1",
+          "title": "Bài 3 — Lưu giá trị",
+          "challenge": {
+            "goal": "Tạo biến ten và in ra biến đó.",
+            "hint": "Ví dụ: ten = \"Lan\" rồi print(ten).",
+            "starter_code": "ten = \"Lan\"\nprint(ten)"
+          }
+        }
+      ]
+    }
+  ]
+}

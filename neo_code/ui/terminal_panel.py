@@ -43,7 +43,7 @@ class TerminalPanel(QWidget):
         header_layout.setContentsMargins(10, 0, 4, 0)
         header_layout.setSpacing(0)
 
-        title = QLabel("Output")
+        title = QLabel("Đầu ra")
         title_font = QFont()
         title_font.setPointSize(9)
         title_font.setBold(True)
@@ -55,7 +55,7 @@ class TerminalPanel(QWidget):
         # Toggle button — far right of header
         self._toggle_btn = QToolButton()
         self._toggle_btn.setText("▾")
-        self._toggle_btn.setToolTip("Hide output panel")
+        self._toggle_btn.setToolTip("Ẩn bảng đầu ra")
         self._toggle_btn.setFixedSize(22, 22)
         self._toggle_btn.setStyleSheet(f"""
             QToolButton {{
@@ -88,14 +88,14 @@ class TerminalPanel(QWidget):
             # Snap the panel to just the header height so the splitter contracts.
             self.setFixedHeight(self._HEADER_H)
             self._toggle_btn.setText("▸")
-            self._toggle_btn.setToolTip("Show output panel")
+            self._toggle_btn.setToolTip("Hiện bảng đầu ra")
         else:
             self._view.setVisible(True)
             # Release the fixed height so the splitter can resize freely again.
             self.setMinimumHeight(self._HEADER_H)
             self.setMaximumHeight(16_777_215)  # Qt QWIDGETSIZE_MAX
             self._toggle_btn.setText("▾")
-            self._toggle_btn.setToolTip("Hide output panel")
+            self._toggle_btn.setToolTip("Ẩn bảng đầu ra")
 
     # ── Signals ───────────────────────────────────────────────────────────────
 

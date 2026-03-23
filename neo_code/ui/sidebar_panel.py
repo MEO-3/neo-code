@@ -16,7 +16,7 @@ Clicking the active button collapses the panel (toggle).
 
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget,
-    QPushButton, QLabel, QSizePolicy, QFrame,
+    QPushButton, QLabel, QSizePolicy, QFrame, QToolButton,
 )
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QFont
@@ -176,9 +176,29 @@ class _ContentPanel(QWidget):
         layout.setSpacing(0)
 
         # Title bar
+        header = QWidget()
+        header.setFixedHeight(32)
+        header.setStyleSheet(
+            f"background-color: {colors.panel_header_bg};"
+        )
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(6, 0, 6, 0)
+        header_layout.setSpacing(4)
+
+        self._back_btn = QToolButton()
+        self._back_btn.setText("←")
+        self._back_btn.setVisible(False)
+        self._back_btn.setFixedSize(22, 22)
+        self._back_btn.setStyleSheet(
+            f"color: {colors.panel_header_text};"
+            "border: none;"
+            "border-radius: 3px;"
+            "font-size: 14px;"
+        )
+        self._back_btn.clicked.connect(self._on_back_clicked)
+        header_layout.addWidget(self._back_btn)
+
         self._title = QLabel("")
-        self._title.setFixedHeight(32)
-        self._title.setContentsMargins(12, 0, 0, 0)
         self._title.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         title_font = QFont()
         title_font.setPointSize(9)
@@ -186,9 +206,10 @@ class _ContentPanel(QWidget):
         self._title.setFont(title_font)
         self._title.setStyleSheet(
             f"color: {colors.panel_header_text};"
-            f"background-color: {colors.panel_header_bg};"
         )
-        layout.addWidget(self._title)
+        header_layout.addWidget(self._title)
+        header_layout.addStretch()
+        layout.addWidget(header)
 
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
@@ -200,6 +221,7 @@ class _ContentPanel(QWidget):
         layout.addWidget(self._stack)
 
         self._entries: dict[str, int] = {}   # key → stack index
+        self._back_callback = None
 
     def add_entry(self, entry: NavEntry) -> None:
         idx = self._stack.addWidget(entry.widget)
@@ -216,6 +238,15 @@ class _ContentPanel(QWidget):
         self.setFixedWidth(0)
         self.setVisible(False)
 
+    def set_back_button(self, visible: bool, callback=None, tooltip: str = "Quay lại") -> None:
+        self._back_callback = callback
+        self._back_btn.setVisible(visible)
+        self._back_btn.setToolTip(tooltip)
+
+    def _on_back_clicked(self) -> None:
+        if callable(self._back_callback):
+            self._back_callback()
+
 
 # ── Public SidebarPanel ───────────────────────────────────────────────────────
 
@@ -228,6 +259,8 @@ class SidebarPanel(QWidget):
         sidebar.add_feature(feature, key="turtle",  icon="🐢", label="Turtle")
         sidebar.set_active("lessons")   # optional default
     """
+
+    active_changed = pyqtSignal(object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -247,7 +280,7 @@ class SidebarPanel(QWidget):
         self._entries: dict[str, NavEntry] = {}
 
         self._activity_bar.nav_selected.connect(self._on_nav_selected)
-        self._activity_bar.nav_toggled.connect(self._content.collapse)
+        self._activity_bar.nav_toggled.connect(self._on_nav_toggled)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -264,6 +297,9 @@ class SidebarPanel(QWidget):
         if widget is not None:
             self.add_nav_widget(key, icon, label, widget)
 
+    def set_header_back(self, visible: bool, callback=None) -> None:
+        self._content.set_back_button(visible, callback)
+
     def set_active(self, key: str) -> None:
         self._activity_bar.set_active(key)
 
@@ -273,3 +309,8 @@ class SidebarPanel(QWidget):
         entry = self._entries.get(key)
         if entry:
             self._content.show_entry(key, entry.label)
+            self.active_changed.emit(key)
+
+    def _on_nav_toggled(self) -> None:
+        self._content.collapse()
+        self.active_changed.emit(None)

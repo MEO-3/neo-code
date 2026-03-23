@@ -5,7 +5,7 @@ from neo_code.core.extension_interface import IFeature
 from neo_code.theme.colors import colors
 
 
-class CurriculumFeature(IFeature):
+class RobotFeature(IFeature):
     def __init__(self) -> None:
         super().__init__()
         self._sidebar: QWidget | None = None
@@ -27,7 +27,7 @@ class _SidebarPlaceholder(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setStyleSheet(f"background-color: {colors.panel_bg};")
-        label = QLabel("Bài học", self)
+        label = QLabel("Rô-bốt", self)
         label.setAlignment(Qt.AlignCenter)
         label.setStyleSheet(f"color: {colors.text_secondary};")
         self._label = label
