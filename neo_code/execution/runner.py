@@ -20,7 +20,7 @@ import sys
 import os
 from pathlib import Path
 
-from PyQt5.QtCore import QObject, QProcess, pyqtSlot
+from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSlot
 
 from neo_code.core.event_bus import event_bus
 from neo_code.execution.proxy_injector import prepare_script
@@ -50,12 +50,16 @@ class Runner(QObject):
 
         self._process = QProcess(self)
         self._process.setProcessChannelMode(QProcess.SeparateChannels)
+        env = QProcessEnvironment.systemEnvironment()
+        env.insert("PYTHONIOENCODING", "utf-8")
+        env.insert("PYTHONUTF8", "1")
+        self._process.setProcessEnvironment(env)
         self._process.readyReadStandardOutput.connect(self._on_stdout)
         self._process.readyReadStandardError.connect(self._on_stderr)
         self._process.finished.connect(self._on_finished)
 
         event_bus.execution_started.emit()
-        self._process.start(sys.executable, [str(self._tmp_script)])
+        self._process.start(sys.executable, ["-X", "utf8", str(self._tmp_script)])
 
         # Safety timeout
         from PyQt5.QtCore import QTimer

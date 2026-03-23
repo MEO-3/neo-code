@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QPlainTextEdit, QLineEdit, QToolButton,
 )
 from PyQt5.QtGui import QColor, QTextCursor, QTextCharFormat, QFont
-from PyQt5.QtCore import QProcess, pyqtSlot, Qt
+from PyQt5.QtCore import QProcess, QProcessEnvironment, pyqtSlot, Qt
 
 from neo_code.theme.colors import colors
 
@@ -123,12 +123,16 @@ class ReplPanel(QWidget):
             return
         self._process = QProcess(self)
         self._process.setProcessChannelMode(QProcess.SeparateChannels)
+        env = QProcessEnvironment.systemEnvironment()
+        env.insert("PYTHONIOENCODING", "utf-8")
+        env.insert("PYTHONUTF8", "1")
+        self._process.setProcessEnvironment(env)
         self._process.readyReadStandardOutput.connect(self._on_stdout)
         self._process.readyReadStandardError.connect(self._on_stderr)
         self._process.finished.connect(self._on_finished)
         self._output.clear()
         self._input.setEnabled(True)
-        self._process.start(sys.executable, ["-u", "-i"])
+        self._process.start(sys.executable, ["-X", "utf8", "-u", "-i"])
 
     def _stop_process(self) -> None:
         if self._process is None:

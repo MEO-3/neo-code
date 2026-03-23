@@ -28,6 +28,7 @@ class LessonPanel(QWidget):
         self._stack.setCurrentWidget(self._list)
 
         self._list.lesson_selected.connect(self._on_lesson_selected)
+        self._detail.progress_updated.connect(self._on_progress_updated)
 
         layout.addWidget(self._stack)
 
@@ -35,6 +36,9 @@ class LessonPanel(QWidget):
         self._detail.set_lesson(lesson)
         self._stack.setCurrentWidget(self._detail)
         self.back_visibility_changed.emit(True)
+
+    def _on_progress_updated(self, lesson_id: str, progress) -> None:
+        self._list.update_progress(lesson_id, progress)
 
     def handle_back(self) -> None:
         self._stack.setCurrentWidget(self._list)

@@ -8,9 +8,10 @@
           "id": "w1-l1",
           "title": "Bài 1 — Chào bạn",
           "challenge": {
-            "goal": "Hãy làm cho máy tính nói 'Xin chào'.",
+            "goal": "Hãy làm cho máy tính nói 'Xin chao'.",
             "hint": "Dùng hàm print() để hiển thị văn bản.",
-            "starter_code": "print(\"Xin chào\")"
+            "starter_code": "print(\"Xin chào\")",
+            "expected_output": "Xin chào"
           }
         },
         {
@@ -19,7 +20,8 @@
           "challenge": {
             "goal": "In ra tên của bạn.",
             "hint": "Bạn có thể thay đổi nội dung trong print().",
-            "starter_code": "print(\"Tên của bạn\")"
+            "starter_code": "print(\"Tên của bạn\")",
+            "expected_output": "Tên của bạn"
           }
         },
         {
@@ -28,7 +30,8 @@
           "challenge": {
             "goal": "In ra hai dòng khác nhau.",
             "hint": "Gọi print() hai lần cho hai dòng.",
-            "starter_code": "print(\"Dòng 1\")\nprint(\"Dòng 2\")"
+            "starter_code": "print(\"Dòng 1\")\nprint(\"Dòng 2\")",
+            "expected_output": "Dòng 1\nDòng 2"
           }
         }
       ]
@@ -43,7 +46,8 @@
           "challenge": {
             "goal": "Tạo biến ten và in ra biến đó.",
             "hint": "Ví dụ: ten = \"Lan\" rồi print(ten).",
-            "starter_code": "ten = \"Lan\"\nprint(ten)"
+            "starter_code": "ten = \"Lan\"\nprint(ten)",
+            "expected_output": "Lan"
           }
         },
         {
@@ -52,7 +56,8 @@
           "challenge": {
             "goal": "Tạo biến a = 5 và in ra a + 3.",
             "hint": "Bạn có thể viết print(a + 3).",
-            "starter_code": "a = 5\nprint(a + 3)"
+            "starter_code": "a = 5\nprint(a + 3)",
+            "expected_output": "8"
           }
         }
       ]
@@ -67,7 +72,8 @@
           "challenge": {
             "goal": "Nếu diem >= 8 thì in ra 'Giỏi'.",
             "hint": "Dùng if diem >= 8: rồi print().",
-            "starter_code": "diem = 9\nif diem >= 8:\n    print(\"Giỏi\")"
+            "starter_code": "diem = 9\nif diem >= 8:\n    print(\"Giỏi\")",
+            "expected_output": "Giỏi"
           }
         },
         {
@@ -76,7 +82,8 @@
           "challenge": {
             "goal": "Nếu diem >= 5 in 'Đạt', ngược lại in 'Chưa đạt'.",
             "hint": "Dùng if ... else ...",
-            "starter_code": "diem = 4\nif diem >= 5:\n    print(\"Đạt\")\nelse:\n    print(\"Chưa đạt\")"
+            "starter_code": "diem = 4\nif diem >= 5:\n    print(\"Đạt\")\nelse:\n    print(\"Chưa đạt\")",
+            "expected_output": "Chưa đạt"
           }
         }
       ]
@@ -91,7 +98,8 @@
           "challenge": {
             "goal": "In ra chữ 'Xin chào' 3 lần.",
             "hint": "Dùng for i in range(3):",
-            "starter_code": "for i in range(3):\n    print(\"Xin chào\")"
+            "starter_code": "for i in range(3):\n    print(\"Xin chào\")",
+            "expected_output": "Xin chào\nXin chào\nXin chào"
           }
         },
         {
@@ -100,7 +108,8 @@
           "challenge": {
             "goal": "In ra các số từ 1 đến 5.",
             "hint": "Dùng range(1, 6).",
-            "starter_code": "for i in range(1, 6):\n    print(i)"
+            "starter_code": "for i in range(1, 6):\n    print(i)",
+            "expected_output": "1\n2\n3\n4\n5"
           }
         }
       ]
@@ -115,7 +124,8 @@
           "challenge": {
             "goal": "Nếu so == 7 thì in 'Đúng rồi!', ngược lại in 'Thử lại'.",
             "hint": "Kết hợp biến + if/else.",
-            "starter_code": "so = 7\nif so == 7:\n    print(\"Đúng rồi!\")\nelse:\n    print(\"Thử lại\")"
+            "starter_code": "so = 7\nif so == 7:\n    print(\"Đúng rồi!\")\nelse:\n    print(\"Thử lại\")",
+            "expected_output": "Đúng rồi!"
           }
         }
       ]

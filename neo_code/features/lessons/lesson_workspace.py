@@ -3,15 +3,23 @@ from PyQt5.QtWidgets import (
     QFrame, QSizePolicy,
 )
 from PyQt5.QtGui import QFont, QTextCharFormat, QColor, QTextCursor
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, pyqtSignal
 
 from neo_code.core.event_bus import event_bus
+from neo_code.features.lessons.evaluator import evaluate_lesson
+from neo_code.features.lessons.progress_store import record_attempt, get_progress, LessonProgress
 from neo_code.theme.colors import colors
 
 
 class LessonWorkspacePanel(QWidget):
+    progress_updated = pyqtSignal(str, object)
+
     def __init__(self) -> None:
         super().__init__()
+        self._current_challenge: dict | None = None
+        self._current_lesson_id: str | None = None
+        self._stdout_lines: list[str] = []
+        self._stderr_lines: list[str] = []
         self._build_ui()
         self._connect_signals()
 
@@ -19,6 +27,18 @@ class LessonWorkspacePanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(12)
+
+        self._lesson_title = QLabel("📘 Bài học")
+        title_font = QFont()
+        title_font.setPointSize(11)
+        title_font.setBold(True)
+        self._lesson_title.setFont(title_font)
+        self._lesson_title.setStyleSheet(f"color: {colors.text};")
+        layout.addWidget(self._lesson_title)
+
+        self._progress_label = QLabel("Tiến độ: —")
+        self._progress_label.setStyleSheet(f"color: {colors.text_secondary};")
+        layout.addWidget(self._progress_label)
 
         goal, self._goal_body = self._card(
             "🎯 Mục tiêu",
@@ -174,39 +194,62 @@ class LessonWorkspacePanel(QWidget):
 
     def set_lesson(self, lesson: dict) -> None:
         challenge = lesson.get("challenge", {})
+        self._current_challenge = challenge
+        self._current_lesson_id = lesson.get("id")
+        self._lesson_title.setText(f"📘 {lesson.get('title', '')}")
         self._goal_body.setText(challenge.get("goal", ""))
         self._hint_body.setText(challenge.get("hint", ""))
         self._starter_code.setPlainText(challenge.get("starter_code", ""))
         self._output.clear()
         self._set_feedback("Viết code trong trình soạn thảo chính rồi bấm Chạy.", None)
+        if self._current_lesson_id:
+            self._set_progress(get_progress(self._current_lesson_id))
 
     @pyqtSlot()
     def _on_execution_started(self) -> None:
         if not self.isVisible():
             return
         self._output.clear()
+        self._stdout_lines = []
+        self._stderr_lines = []
         self._set_feedback("Đang chạy...", None)
 
     @pyqtSlot(int)
     def _on_execution_finished(self, exit_code: int) -> None:
         if not self.isVisible():
             return
-        if exit_code == 0:
-            self._set_feedback("Hoàn thành. Hãy kiểm tra kết quả nhé!", True)
-        else:
-            self._set_feedback("Có lỗi xảy ra. Hãy thử lại.", False)
+        challenge = self._current_challenge or {}
+        stdout_text = "\n".join(self._stdout_lines)
+        stderr_text = "\n".join(self._stderr_lines)
+        success, message = evaluate_lesson(challenge, stdout_text, stderr_text, exit_code)
+        self._set_feedback(message, success)
+        if self._current_lesson_id:
+            progress = record_attempt(self._current_lesson_id, success)
+            self._set_progress(progress)
+            self.progress_updated.emit(self._current_lesson_id, progress)
 
     @pyqtSlot(str)
     def _on_stdout(self, text: str) -> None:
         if not self.isVisible():
             return
+        self._stdout_lines.append(text)
         self._append(text, self._fmt_stdout)
 
     @pyqtSlot(str)
     def _on_stderr(self, text: str) -> None:
         if not self.isVisible():
             return
+        self._stderr_lines.append(text)
         self._append(text, self._fmt_stderr)
+
+    def _set_progress(self, progress: LessonProgress) -> None:
+        stars = "★" * max(0, min(3, progress.stars)) + "☆" * (3 - max(0, min(3, progress.stars)))
+        if progress.attempts == 0 and not progress.completed:
+            self._progress_label.setText("Tiến độ: Chưa bắt đầu")
+            return
+        self._progress_label.setText(
+            f"Tiến độ: {stars} • Lượt thử: {progress.attempts}"
+        )
 
     @staticmethod
     def _title_font() -> QFont:
