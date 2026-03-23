@@ -21,6 +21,15 @@
             "hint": "Bạn có thể thay đổi nội dung trong print().",
             "starter_code": "print(\"Tên của bạn\")"
           }
+        },
+        {
+          "id": "w1-l3",
+          "title": "Bài 3 — Nhiều dòng",
+          "challenge": {
+            "goal": "In ra hai dòng khác nhau.",
+            "hint": "Gọi print() hai lần cho hai dòng.",
+            "starter_code": "print(\"Dòng 1\")\nprint(\"Dòng 2\")"
+          }
         }
       ]
     },
@@ -35,6 +44,78 @@
             "goal": "Tạo biến ten và in ra biến đó.",
             "hint": "Ví dụ: ten = \"Lan\" rồi print(ten).",
             "starter_code": "ten = \"Lan\"\nprint(ten)"
+          }
+        },
+        {
+          "id": "w2-l2",
+          "title": "Bài 4 — Con số",
+          "challenge": {
+            "goal": "Tạo biến a = 5 và in ra a + 3.",
+            "hint": "Bạn có thể viết print(a + 3).",
+            "starter_code": "a = 5\nprint(a + 3)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "world-3",
+      "title": "Thế giới 3 — Quyết định",
+      "lessons": [
+        {
+          "id": "w3-l1",
+          "title": "Bài 5 — Nếu đúng",
+          "challenge": {
+            "goal": "Nếu diem >= 8 thì in ra 'Giỏi'.",
+            "hint": "Dùng if diem >= 8: rồi print().",
+            "starter_code": "diem = 9\nif diem >= 8:\n    print(\"Giỏi\")"
+          }
+        },
+        {
+          "id": "w3-l2",
+          "title": "Bài 6 — Nếu/khác",
+          "challenge": {
+            "goal": "Nếu diem >= 5 in 'Đạt', ngược lại in 'Chưa đạt'.",
+            "hint": "Dùng if ... else ...",
+            "starter_code": "diem = 4\nif diem >= 5:\n    print(\"Đạt\")\nelse:\n    print(\"Chưa đạt\")"
+          }
+        }
+      ]
+    },
+    {
+      "id": "world-4",
+      "title": "Thế giới 4 — Vòng lặp",
+      "lessons": [
+        {
+          "id": "w4-l1",
+          "title": "Bài 7 — Lặp lại",
+          "challenge": {
+            "goal": "In ra chữ 'Xin chào' 3 lần.",
+            "hint": "Dùng for i in range(3):",
+            "starter_code": "for i in range(3):\n    print(\"Xin chào\")"
+          }
+        },
+        {
+          "id": "w4-l2",
+          "title": "Bài 8 — Đếm số",
+          "challenge": {
+            "goal": "In ra các số từ 1 đến 5.",
+            "hint": "Dùng range(1, 6).",
+            "starter_code": "for i in range(1, 6):\n    print(i)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "world-5",
+      "title": "Thế giới 5 — Mini Logic",
+      "lessons": [
+        {
+          "id": "w5-l1",
+          "title": "Bài 9 — Mini Game",
+          "challenge": {
+            "goal": "Nếu so == 7 thì in 'Đúng rồi!', ngược lại in 'Thử lại'.",
+            "hint": "Kết hợp biến + if/else.",
+            "starter_code": "so = 7\nif so == 7:\n    print(\"Đúng rồi!\")\nelse:\n    print(\"Thử lại\")"
           }
         }
       ]
