@@ -262,9 +262,12 @@ class SidebarPanel(QWidget):
 
     active_changed = pyqtSignal(object)
 
+    _COLLAPSED_WIDTH = 56
+    _EXPANDED_WIDTH = 56 + _ContentPanel._EXPANDED_WIDTH
+
     def __init__(self) -> None:
         super().__init__()
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.setFixedWidth(self._COLLAPSED_WIDTH)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -309,8 +312,10 @@ class SidebarPanel(QWidget):
         entry = self._entries.get(key)
         if entry:
             self._content.show_entry(key, entry.label)
+            self.setFixedWidth(self._EXPANDED_WIDTH)
             self.active_changed.emit(key)
 
     def _on_nav_toggled(self) -> None:
         self._content.collapse()
+        self.setFixedWidth(self._COLLAPSED_WIDTH)
         self.active_changed.emit(None)
