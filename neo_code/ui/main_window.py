@@ -80,6 +80,8 @@ class MainWindow(QMainWindow):
         self._editor_terminal_splitter.setSizes([0, 600, 160])
         outer_splitter.addWidget(self._editor_terminal_splitter)
         outer_splitter.setSizes([56, 1000])
+        outer_splitter.setStretchFactor(0, 0)
+        outer_splitter.setStretchFactor(1, 1)
         self._outer_splitter = outer_splitter
 
         root_layout.addWidget(outer_splitter)
@@ -122,6 +124,8 @@ class MainWindow(QMainWindow):
         event_bus.file_new.connect(self._on_file_new)
         event_bus.repl_mode_changed.connect(self._on_repl_mode_changed)
         self._sidebar.active_changed.connect(self._on_sidebar_active_changed)
+        self._sidebar.expand_requested.connect(self._on_sidebar_expand)
+        self._sidebar.collapse_requested.connect(self._on_sidebar_collapse)
 
     # ── File dialogs ──────────────────────────────────────────────────────────
 
@@ -215,6 +219,18 @@ class MainWindow(QMainWindow):
             return
         callback = self._robot_panel.handle_back if visible and hasattr(self._robot_panel, "handle_back") else None
         self._sidebar.set_header_back(visible, callback)
+
+    # ── Sidebar resize ────────────────────────────────────────────────────────
+
+    @pyqtSlot(int)
+    def _on_sidebar_expand(self, width: int) -> None:
+        total = self._outer_splitter.width()
+        self._outer_splitter.setSizes([width, total - width])
+
+    @pyqtSlot()
+    def _on_sidebar_collapse(self) -> None:
+        total = self._outer_splitter.width()
+        self._outer_splitter.setSizes([56, total - 56])
 
     # ── Cleanup ───────────────────────────────────────────────────────────────
 

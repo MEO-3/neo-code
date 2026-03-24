@@ -231,11 +231,13 @@ class _ContentPanel(QWidget):
         if key in self._entries:
             self._stack.setCurrentIndex(self._entries[key])
             self._title.setText(label.upper())
-        self.setFixedWidth(self._EXPANDED_WIDTH)
+        self.setMinimumWidth(160)
+        self.setMaximumWidth(16777215)
         self.setVisible(True)
 
     def collapse(self) -> None:
-        self.setFixedWidth(0)
+        self.setMinimumWidth(0)
+        self.setMaximumWidth(0)
         self.setVisible(False)
 
     def set_back_button(self, visible: bool, callback=None, tooltip: str = "Quay lại") -> None:
@@ -261,13 +263,16 @@ class SidebarPanel(QWidget):
     """
 
     active_changed = pyqtSignal(object)
+    expand_requested = pyqtSignal(int)   # desired total sidebar width
+    collapse_requested = pyqtSignal()
 
-    _COLLAPSED_WIDTH = 56
-    _EXPANDED_WIDTH = 56 + _ContentPanel._EXPANDED_WIDTH
+    _ACTIVITY_BAR_WIDTH = 56
+    _DEFAULT_CONTENT_WIDTH = _ContentPanel._EXPANDED_WIDTH
 
     def __init__(self) -> None:
         super().__init__()
-        self.setFixedWidth(self._COLLAPSED_WIDTH)
+        self.setMinimumWidth(self._ACTIVITY_BAR_WIDTH)
+        self.setMaximumWidth(self._ACTIVITY_BAR_WIDTH)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -312,10 +317,14 @@ class SidebarPanel(QWidget):
         entry = self._entries.get(key)
         if entry:
             self._content.show_entry(key, entry.label)
-            self.setFixedWidth(self._EXPANDED_WIDTH)
+            self.setMinimumWidth(self._ACTIVITY_BAR_WIDTH + 160)
+            self.setMaximumWidth(16777215)
+            self.expand_requested.emit(self._ACTIVITY_BAR_WIDTH + self._DEFAULT_CONTENT_WIDTH)
             self.active_changed.emit(key)
 
     def _on_nav_toggled(self) -> None:
         self._content.collapse()
-        self.setFixedWidth(self._COLLAPSED_WIDTH)
+        self.setMinimumWidth(self._ACTIVITY_BAR_WIDTH)
+        self.setMaximumWidth(self._ACTIVITY_BAR_WIDTH)
+        self.collapse_requested.emit()
         self.active_changed.emit(None)
