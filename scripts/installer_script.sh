@@ -28,7 +28,7 @@ NON_QT_DEPS=("jedi>=0.19.0" "pyflakes>=3.2.0")
 
 # -- Parse arguments -----------------------------------------------------------
 SKIP_DESKTOP=false
-USE_VENV=false
+USE_VENV=true
 UNINSTALL=false
 
 for arg in "$@"; do
@@ -121,6 +121,9 @@ install_system_deps() {
         sudo apt-get update -qq
         sudo apt-get install -y -qq \
             python3-pyqt5 \
+            python3-pyqt5.qtwidgets \
+            python3-pyqt5.qtgui \
+            python3-pyqt5.qtcore \
             python3-venv \
             python3-pip
     elif [ "$ARCH" = "x86" ]; then
