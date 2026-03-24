@@ -5,8 +5,8 @@
 # Handles ARM (Armbian/Raspberry Pi) and x86 platforms automatically.
 #
 # Usage:
-#   Local:  bash scripts/installer_script.sh
-#   Remote: curl -sSL https://raw.githubusercontent.com/MEO-3/neo-code/main/scripts/installer_script.sh | bash
+#   Local:  bash scripts/install_on_neo.sh
+#   Remote: curl -sSL https://raw.githubusercontent.com/MEO-3/neo-code/main/scripts/install_on_neo.sh | bash
 #
 # Options:
 #   --no-desktop   Skip .desktop file and icon installation

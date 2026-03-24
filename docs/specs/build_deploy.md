@@ -119,7 +119,7 @@ index-servers = pypi
 
 [pypi]
 username = __token__
-password = pypi-YOUR_TOKEN_HERE
+password = pypi-AgEIcHlwaS5vcmcCJDA5MmExYTg4LTNjYmMtNGM0OC05NjEzLWEwYTFlNDMxYWZlYgACKlszLCJhNTkyNjVmOC01OWZjLTQ4MGItOWJjMC0xNmJlZGIxMDJjNzciXQAABiAXi3KrycIVJpUYETadQN2ztcvkfEEWvvHTAs1NPVwX
 EOF
 chmod 600 ~/.pypirc
 ```
