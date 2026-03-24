@@ -22,7 +22,6 @@ class RobotWorkspacePanel(QWidget):
         super().__init__()
         self._mission: dict | None = None
         self._build_ui()
-        self._connect_signals()
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
@@ -37,7 +36,7 @@ class RobotWorkspacePanel(QWidget):
         self._title.setStyleSheet(f"color: {colors.text};")
         root.addWidget(self._title)
 
-        self._status = QLabel("Trạng thái: Mô phỏng (chưa kết nối board).")
+        self._status = QLabel("Trạng thái: Chưa tìm kiếm board.")
         self._status.setWordWrap(True)
         self._status.setStyleSheet(f"color: {colors.text_secondary};")
         root.addWidget(self._status)
@@ -47,7 +46,11 @@ class RobotWorkspacePanel(QWidget):
 
         api_card, self._api = self._card(
             "🧪 API thingbot-telemetrix",
-            "Ví dụ API sẽ xuất hiện tại đây để học sinh dùng trong editor chính.",
+            "Ví dụ API sẽ xuất hiện tại đây.",
+        )
+        self._api.setStyleSheet(
+            f"color: {colors.text_secondary};"
+            "font-family: monospace;"
         )
         root.addWidget(api_card)
 
@@ -73,6 +76,7 @@ class RobotWorkspacePanel(QWidget):
             f"color: {colors.editor_text};"
             f"border: 1px solid {colors.border};"
             "border-radius: 4px;"
+            "font-family: monospace;"
         )
         script_layout.addWidget(self._starter)
         root.addWidget(script_card)
@@ -90,8 +94,12 @@ class RobotWorkspacePanel(QWidget):
         self._btn_start.clicked.connect(self._on_start_clicked)
         root.addWidget(self._btn_start)
 
-        self._btn_connect = QPushButton("Kết nối USB")
+        self._btn_connect = QPushButton("Tìm board USB")
         self._btn_connect.setCursor(Qt.PointingHandCursor)
+        self._btn_connect.setToolTip(
+            "Quét cổng serial để tìm ThingBot.\n"
+            "Board sẽ được kết nối khi bạn nhấn Run."
+        )
         self._btn_connect.setStyleSheet(
             f"background-color: {colors.surface_alt};"
             f"color: {colors.text};"
@@ -103,21 +111,7 @@ class RobotWorkspacePanel(QWidget):
         self._btn_connect.clicked.connect(self.connect_requested.emit)
         root.addWidget(self._btn_connect)
 
-        self._btn_disconnect = QPushButton("Ngắt kết nối")
-        self._btn_disconnect.setCursor(Qt.PointingHandCursor)
-        self._btn_disconnect.setStyleSheet(
-            f"background-color: {colors.surface_alt};"
-            f"color: {colors.text};"
-            f"border: 1px solid {colors.border};"
-            "border-radius: 5px;"
-            "padding: 6px 10px;"
-            "font-weight: bold;"
-        )
-        self._btn_disconnect.clicked.connect(self.disconnect_requested.emit)
-        root.addWidget(self._btn_disconnect)
-
-    def _connect_signals(self) -> None:
-        event_bus.project_opened.connect(self._on_project_opened)
+        root.addStretch()
 
     def set_mission(self, mission: dict) -> None:
         self._mission = mission
@@ -127,7 +121,7 @@ class RobotWorkspacePanel(QWidget):
         self._starter.setPlainText(mission.get("starter_code", ""))
 
     def set_status(self, text: str) -> None:
-        self._status.setText(text)
+        self._status.setText(f"Trạng thái: {text}")
 
     def _on_start_clicked(self) -> None:
         if not self._mission:
@@ -139,10 +133,6 @@ class RobotWorkspacePanel(QWidget):
         )()
         event_bus.project_opened.emit(lesson_like_project)
         self.start_requested.emit(self._mission.get("id", ""))
-
-    def _on_project_opened(self, _project) -> None:
-        # Hook reserved for future sync behaviors.
-        return
 
     def _card(self, title: str, body: str) -> tuple[QFrame, QLabel]:
         card = QFrame()

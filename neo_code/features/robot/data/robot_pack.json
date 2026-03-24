@@ -1,35 +1,82 @@
 {
   "modules": [
     {
-      "id": "telemetrix-basics",
-      "title": "Telemetrix Cơ bản",
+      "id": "thingbot-basics",
+      "title": "ThingBot Cơ bản",
       "missions": [
         {
-          "id": "connect-and-blink",
-          "title": "Kết nối & Nháy LED",
-          "goal": "Kết nối board qua thingbot-telemetrix và nháy LED tích hợp.",
-          "api_hint": "Dùng API robot dự kiến: robot.connect_auto(), robot.pin_mode_digital_output(13), robot.digital_write(13, 1/0).",
-          "starter_code": "from thingbot_telemetrix import ThingBotTelemetrix\n\n# API dự kiến cho học sinh (sẽ được inject ở bước runtime)\n# robot.connect_auto()\n# robot.pin_mode_digital_output(13)\n# robot.digital_write(13, 1)\n# robot.sleep(0.5)\n# robot.digital_write(13, 0)\n\nprint('Robot mission: connect-and-blink')\n"
+          "id": "blink-led",
+          "title": "Nháy LED",
+          "goal": "Nháy LED_1 ba lần bằng thingbot-telemetrix.",
+          "api_hint": "board.thingbot().control_led(ThingBot.LED_1, 100)  # bật\nboard.thingbot().control_led(ThingBot.LED_1, 0)    # tắt",
+          "starter_code": "import time\nfrom thingbot_telemetrix import Telemetrix\nfrom thingbot_telemetrix.private_constants import ThingBot\n\nboard = Telemetrix()\n\nfor _ in range(3):\n    board.thingbot().control_led(ThingBot.LED_1, 100)\n    time.sleep(0.5)\n    board.thingbot().control_led(ThingBot.LED_1, 0)\n    time.sleep(0.5)\n\nboard.shutdown()\nprint('Xong!')\n"
         },
         {
-          "id": "move-short-distance",
-          "title": "Di chuyển đoạn ngắn",
-          "goal": "Điều khiển robot tiến và dừng bằng API Telemetrix.",
-          "api_hint": "Dùng API dự kiến: robot.move_forward(speed=80, duration_ms=600), robot.stop().",
-          "starter_code": "# API dự kiến cho học sinh\n# robot.connect_auto()\n# robot.move_forward(speed=80, duration_ms=600)\n# robot.stop()\n\nprint('Robot mission: move-short-distance')\n"
+          "id": "move-forward",
+          "title": "Di chuyển tiến",
+          "goal": "Cho robot tiến trong 1 giây rồi dừng.",
+          "api_hint": "board.thingbot().control_dc(ThingBot.MOTOR_1, 200)  # tiến\nboard.thingbot().control_dc(ThingBot.MOTOR_1, 0)    # dừng",
+          "starter_code": "import time\nfrom thingbot_telemetrix import Telemetrix\nfrom thingbot_telemetrix.private_constants import ThingBot\n\nboard = Telemetrix()\n\nboard.thingbot().control_dc(ThingBot.MOTOR_1, 200)\ntime.sleep(1)\nboard.thingbot().control_dc(ThingBot.MOTOR_1, 0)\n\nboard.shutdown()\nprint('Xong!')\n"
+        },
+        {
+          "id": "move-backward",
+          "title": "Di chuyển lùi",
+          "goal": "Cho robot lùi trong 1 giây rồi dừng.",
+          "api_hint": "board.thingbot().control_dc(ThingBot.MOTOR_1, -200)  # lùi\nboard.thingbot().control_dc(ThingBot.MOTOR_1, 0)     # dừng",
+          "starter_code": "import time\nfrom thingbot_telemetrix import Telemetrix\nfrom thingbot_telemetrix.private_constants import ThingBot\n\nboard = Telemetrix()\n\nboard.thingbot().control_dc(ThingBot.MOTOR_1, -200)\ntime.sleep(1)\nboard.thingbot().control_dc(ThingBot.MOTOR_1, 0)\n\nboard.shutdown()\nprint('Xong!')\n"
         }
       ]
     },
     {
-      "id": "telemetrix-sensors",
-      "title": "Cảm biến",
+      "id": "thingbot-servo-buzzer",
+      "title": "Servo & Còi",
       "missions": [
         {
-          "id": "read-distance",
-          "title": "Đọc khoảng cách",
-          "goal": "Đọc giá trị cảm biến khoảng cách và in ra màn hình.",
-          "api_hint": "Dùng API dự kiến: robot.sonar_read(trigger_pin=5, echo_pin=6).",
-          "starter_code": "# API dự kiến\n# robot.connect_auto()\n# distance = robot.sonar_read(trigger_pin=5, echo_pin=6)\n# print('distance:', distance)\n\nprint('Robot mission: read-distance')\n"
+          "id": "servo-sweep",
+          "title": "Quay Servo",
+          "goal": "Quay servo từ 0° đến 180° rồi về 0°.",
+          "api_hint": "board.thingbot().control_servo(ThingBot.SERVO_1, angle)  # angle: 0–180",
+          "starter_code": "import time\nfrom thingbot_telemetrix import Telemetrix\nfrom thingbot_telemetrix.private_constants import ThingBot\n\nboard = Telemetrix()\n\nfor angle in range(0, 181, 10):\n    board.thingbot().control_servo(ThingBot.SERVO_1, angle)\n    time.sleep(0.05)\n\nfor angle in range(180, -1, -10):\n    board.thingbot().control_servo(ThingBot.SERVO_1, angle)\n    time.sleep(0.05)\n\nboard.shutdown()\nprint('Xong!')\n"
+        },
+        {
+          "id": "buzzer-melody",
+          "title": "Kêu Còi",
+          "goal": "Phát âm thanh ba lần bằng còi.",
+          "api_hint": "board.thingbot().control_buzzer(440)  # bật tần số 440 Hz\nboard.thingbot().control_buzzer(0)    # tắt",
+          "starter_code": "import time\nfrom thingbot_telemetrix import Telemetrix\n\nboard = Telemetrix()\n\nfor _ in range(3):\n    board.thingbot().control_buzzer(440)\n    time.sleep(0.3)\n    board.thingbot().control_buzzer(0)\n    time.sleep(0.2)\n\nboard.shutdown()\nprint('Xong!')\n"
+        }
+      ]
+    },
+    {
+      "id": "thingbot-switch",
+      "title": "Nút Nhấn",
+      "missions": [
+        {
+          "id": "switch-callback",
+          "title": "Phản hồi nút nhấn",
+          "goal": "In ra màn hình khi nhấn và thả nút trong 5 giây.",
+          "api_hint": "board.thingbot().set_sw_callback(fn)  # fn(state: bool)\n# state=True: nhấn, state=False: thả",
+          "starter_code": "import time\nfrom thingbot_telemetrix import Telemetrix\n\nboard = Telemetrix()\n\ndef on_switch(state):\n    if state:\n        print('Nhấn!')\n    else:\n        print('Thả!')\n\nboard.thingbot().set_sw_callback(on_switch)\ntime.sleep(5)\n\nboard.shutdown()\nprint('Xong!')\n"
+        },
+        {
+          "id": "switch-led",
+          "title": "Nút điều khiển LED",
+          "goal": "Bật LED khi nhấn nút, tắt LED khi thả nút.",
+          "api_hint": "Dùng callback để bật/tắt LED theo trạng thái nút nhấn.",
+          "starter_code": "import time\nfrom thingbot_telemetrix import Telemetrix\nfrom thingbot_telemetrix.private_constants import ThingBot\n\nboard = Telemetrix()\n\ndef on_switch(state):\n    brightness = 100 if state else 0\n    board.thingbot().control_led(ThingBot.LED_1, brightness)\n\nboard.thingbot().set_sw_callback(on_switch)\ntime.sleep(10)\n\nboard.shutdown()\nprint('Xong!')\n"
+        }
+      ]
+    },
+    {
+      "id": "thingbot-gpio",
+      "title": "GPIO Cơ bản",
+      "missions": [
+        {
+          "id": "gpio-blink",
+          "title": "Nháy đèn GPIO",
+          "goal": "Nháy đèn trên chân GPIO số 7 ba lần.",
+          "api_hint": "board.gpio().set_pin_mode_output(pin)\nboard.gpio().digital_write(pin, 1)  # bật\nboard.gpio().digital_write(pin, 0)  # tắt",
+          "starter_code": "import time\nfrom thingbot_telemetrix import Telemetrix\n\nboard = Telemetrix()\nboard.gpio().set_pin_mode_output(7)\n\nfor _ in range(3):\n    board.gpio().digital_write(7, 1)\n    time.sleep(0.5)\n    board.gpio().digital_write(7, 0)\n    time.sleep(0.5)\n\nboard.shutdown()\nprint('Xong!')\n"
         }
       ]
     }

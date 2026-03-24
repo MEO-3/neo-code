@@ -44,6 +44,9 @@ dev = [
     "hatch",
     "twine",
 ]
+robot = [
+    "thingbot-telemetrix @ git+https://github.com/MEO-3/thingbot-telemetrix.git",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["neo_code"]
