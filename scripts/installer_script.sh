@@ -121,9 +121,9 @@ install_system_deps() {
         sudo apt-get update -qq
         sudo apt-get install -y -qq \
             python3-pyqt5 \
-            python3-pyqt5.qtwidgets \
-            python3-pyqt5.qtgui \
-            python3-pyqt5.qtcore \
+            # python3-pyqt5.qtwidgets \
+            # python3-pyqt5.qtgui \
+            # python3-pyqt5.qtcore \
             python3-venv \
             python3-pip
     elif [ "$ARCH" = "x86" ]; then
