@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         self._robot.activate()
 
         self._sidebar.add_feature(self._lessons, key="lessons", icon="📖", label="Bài học")
-        self._sidebar.add_feature(self._robot, key="robot", icon="🤖", label="Rô-bốt")
+        self._sidebar.add_feature(self._robot, key="robot", icon="🤖", label="Robot")
         self._sidebar.set_active("lessons")
         self._active_sidebar_key = "lessons"
 
