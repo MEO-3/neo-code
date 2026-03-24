@@ -28,7 +28,7 @@ NON_QT_DEPS=("jedi>=0.19.0" "pyflakes>=3.2.0")
 
 # -- Parse arguments -----------------------------------------------------------
 SKIP_DESKTOP=false
-USE_VENV=true
+USE_VENV=false
 UNINSTALL=false
 
 for arg in "$@"; do
