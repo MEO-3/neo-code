@@ -28,51 +28,72 @@ NEO Code is a lightweight, kid-friendly Python IDE designed to run on low-resour
 
 ## Installation
 
-### 1 — Install system Qt libraries (Debian / Ubuntu / Armbian)
+### Quick install (recommended)
 
-PyQt5 pip wheels bundle their own Qt on x86, but on **ARM** boards (Armbian, Raspberry Pi OS, etc.) it is faster and more reliable to use the distro packages:
+The installer script automatically detects your platform (ARM or x86) and handles everything — including PyQt5, virtualenv setup, and desktop integration:
 
 ```bash
-sudo apt update
-sudo apt install -y \
-    python3-pyqt5 \
-    python3-pyqt5.qtwidgets \
-    python3-pyqt5.qtgui \
-    python3-pyqt5.qtcore \
-    libqt5widgets5 \
-    libqt5gui5 \
-    libqt5core5a
+curl -sSL https://raw.githubusercontent.com/MEO-3/neo-code/main/scripts/installer_script.sh | bash
 ```
 
-> **x86 / desktop users** can skip this step — the pip wheel includes Qt automatically.
+Or install on Neo One:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/MEO-3/neo-code/main/scripts/install_on_neo.sh | bash
+```
+
+Or clone the repo first and run locally:
+
+```bash
+git clone https://github.com/MEO-3/neo-code.git
+cd neo-code
+bash scripts/installer_script.sh
+```
+
+This will:
+- Install PyQt5 via **apt** on ARM (no compiling from source)
+- Install PyQt5 via **pip** on x86 (pre-built wheel)
+- Create a virtualenv at `~/.local/share/neo-code/venv`
+- Add a `neo-code` command to `~/.local/bin`
+- Create a `.desktop` launcher entry
+
+**Installer options:**
+
+| Flag | Effect |
+|------|--------|
+| `--no-desktop` | Skip `.desktop` file and icon installation |
+| `--no-venv` | Install into system Python instead of a virtualenv |
+| `--uninstall` | Remove NEO Code and all associated files |
 
 ---
 
-### 2 — Install NEO Code
+### Manual install
 
-#### Option A — System Python (simplest, ARM-recommended)
+If you prefer to install manually:
+
+#### ARM (Armbian / Raspberry Pi OS)
 
 ```bash
-pip install neo-code
+# 1. Install PyQt5 from apt (avoids building from source)
+sudo apt install -y python3-pyqt5 python3-pyqt5.qtwidgets \
+    python3-pyqt5.qtgui python3-pyqt5.qtcore python3-venv
+
+# 2. Create venv with system-site-packages (to access apt PyQt5)
+python3 -m venv --system-site-packages ~/.local/share/neo-code/venv
+source ~/.local/share/neo-code/venv/bin/activate
+
+# 3. Install neo-code without pulling PyQt5 from pip
+pip install jedi pyflakes
+pip install --no-deps neo-code
+
 neo-code
 ```
 
-#### Option B — Virtual environment with system Qt (ARM-recommended)
-
-Use `--system-site-packages` so the venv can see the apt-installed PyQt5:
+#### x86 / Desktop Linux
 
 ```bash
-python3 -m venv --system-site-packages ~/.venvs/neo-code
-source ~/.venvs/neo-code/bin/activate
-pip install neo-code
-neo-code
-```
-
-#### Option C — Fully isolated venv (x86 / desktop)
-
-```bash
-python3 -m venv ~/.venvs/neo-code
-source ~/.venvs/neo-code/bin/activate
+python3 -m venv ~/.local/share/neo-code/venv
+source ~/.local/share/neo-code/venv/bin/activate
 pip install neo-code
 neo-code
 ```
