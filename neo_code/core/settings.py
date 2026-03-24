@@ -14,6 +14,7 @@ _DEFAULTS: dict = {
     "tab_width": 4,
     "word_wrap": False,
     "last_open_dir": str(Path.home()),
+    "auto_check_update": True,
 }
 
 
@@ -76,6 +77,14 @@ class Settings:
 
     def get(self, key: str, default=None):
         return self._data.get(key, default)
+
+    @property
+    def auto_check_update(self) -> bool:
+        return bool(self._data.get("auto_check_update", True))
+
+    @auto_check_update.setter
+    def auto_check_update(self, value: bool) -> None:
+        self._data["auto_check_update"] = value
 
     def set(self, key: str, value) -> None:
         self._data[key] = value

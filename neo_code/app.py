@@ -8,6 +8,7 @@ from PyQt5.QtGui import QPalette, QColor
 
 from neo_code.ui.main_window import MainWindow
 from neo_code.theme.colors import colors
+from neo_code.core.settings import Settings
 
 
 class NeoCodeApp(QApplication):
@@ -22,6 +23,19 @@ class NeoCodeApp(QApplication):
 
         self._window = MainWindow()
         self._window.show()
+
+        self._start_update_check()
+
+    def _start_update_check(self) -> None:
+        settings = Settings()
+        if not settings.auto_check_update:
+            return
+        from neo_code.core.updater import UpdateChecker
+        from neo_code.core.event_bus import event_bus
+
+        self._update_checker = UpdateChecker(self)
+        self._update_checker.update_available.connect(event_bus.update_available)
+        self._update_checker.check()
 
     def _apply_theme(self) -> None:
         self.setStyle("Fusion")

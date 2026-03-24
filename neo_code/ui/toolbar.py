@@ -65,6 +65,16 @@ _TOOLBAR_STYLE = f"""
         color: {colors.primary_text};
         border: 1px solid {colors.primary};
     }}
+    QToolButton[text="⬆ Cập nhật"] {{
+        background-color: {colors.primary};
+        color: {colors.primary_text};
+        font-weight: bold;
+        border-radius: 4px;
+        padding: 4px 12px;
+    }}
+    QToolButton[text="⬆ Cập nhật"]:hover {{
+        background-color: {colors.primary_hover};
+    }}
 """
 
 
@@ -118,11 +128,22 @@ class Toolbar(QToolBar):
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.addWidget(spacer)
 
+        # Update indicator — hidden until an update is available
+        self._act_update = QAction("⬆ Cập nhật", self)
+        self._act_update.setVisible(False)
+        self._act_update.triggered.connect(self._on_update_clicked)
+        self.addAction(self._act_update)
+
         self._act_repl = QAction("⚡  Tương tác", self)
         self._act_repl.setCheckable(True)
         self._act_repl.setShortcut("F9")
         self._act_repl.toggled.connect(lambda on: event_bus.repl_mode_changed.emit(on))
         self.addAction(self._act_repl)
+
+        self._act_settings = QAction("⚙", self)
+        self._act_settings.setToolTip("Cài đặt")
+        self._act_settings.triggered.connect(self._on_settings_clicked)
+        self.addAction(self._act_settings)
 
     # ── Signals ───────────────────────────────────────────────────────────────
 
@@ -130,6 +151,7 @@ class Toolbar(QToolBar):
         event_bus.execution_started.connect(self._on_execution_started)
         event_bus.execution_finished.connect(self._on_execution_finished)
         event_bus.repl_mode_changed.connect(self._on_repl_mode_changed)
+        event_bus.update_available.connect(self._on_update_available)
 
     # ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -147,3 +169,20 @@ class Toolbar(QToolBar):
     def _on_repl_mode_changed(self, active: bool) -> None:
         self._act_run.setEnabled(not active)
         self._act_stop.setEnabled(False)
+
+    def _on_update_available(self, version: str, notes: str, url: str) -> None:
+        self._pending_update = (version, notes, url)
+        self._act_update.setVisible(True)
+
+    def _on_update_clicked(self) -> None:
+        if not hasattr(self, "_pending_update"):
+            return
+        version, notes, url = self._pending_update
+        from neo_code.ui.update_dialog import UpdateDialog
+        dlg = UpdateDialog(version, notes, url, parent=self.window())
+        dlg.exec()
+
+    def _on_settings_clicked(self) -> None:
+        from neo_code.ui.settings_dialog import SettingsDialog
+        dlg = SettingsDialog(parent=self.window())
+        dlg.exec()

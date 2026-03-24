@@ -46,6 +46,9 @@ class EventBus(QObject):
     open_file_dialog_requested = pyqtSignal()
     save_file_dialog_requested = pyqtSignal()
 
+    # ── Software update ──────────────────────────────────────────────────
+    update_available = pyqtSignal(str, str, str)  # (version, notes, download_url)
+
 
 # Module-level singleton — import this everywhere
 event_bus = EventBus()
