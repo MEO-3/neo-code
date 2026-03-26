@@ -8,12 +8,12 @@ NEO Code is a lightweight, kid-friendly Python IDE designed to run on low-resour
 
 ## Features
 
-- 🟢 **Python editor** — syntax highlighting, line numbers, debounced code-change events
-- ▶️ **Run & Stop** — sandboxed `QProcess` execution with 30-second timeout (F5 / F6)
-- ⚡ **REPL mode** — live interactive Python console backed by a persistent `python3 -i` process (F9)
-- 📤 **Output panel** — collapsible console showing stdout and stderr in colour
-- 📖 **Lesson sidebar** — VS Code-style activity bar with curriculum browser
-- 🎨 **Green theme** — clean white + #32A852 green palette, easy on young eyes
+- **Python editor** — syntax highlighting, line numbers, debounced code-change events
+- **Run & Stop** — sandboxed `QProcess` execution with 30-second timeout (F5 / F6)
+- **REPL mode** — live interactive Python console backed by a persistent `python3 -i` process (F9)
+- **Output panel** — collapsible console showing stdout and stderr in colour
+- **Lesson sidebar** — VS Code-style activity bar with curriculum browser
+- **Green theme** — clean white + #32A852 green palette, easy on young eyes
 
 ---
 
@@ -136,9 +136,9 @@ python -m neo_code
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| 1 — IDE Foundation | ✅ Done | Editor, terminal, toolbar, sidebar, theme, event bus, QProcess runner |
-| 2 — REPL mode | ✅ Done | Interactive Python console with persistent process, escape-code filtering |
-| 3 — Curriculum | 🔲 Planned | Lesson browser, project templates, student progress |
+| 1 — IDE Foundation | Done | Editor, terminal, toolbar, sidebar, theme, event bus, QProcess runner |
+| 2 — REPL mode | Done | Interactive Python console with persistent process, escape-code filtering |
+| 3 — Curriculum | Planned | Lesson browser, project templates, student progress |
 
 ---
 
