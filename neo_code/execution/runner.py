@@ -59,7 +59,7 @@ class Runner(QObject):
         self._process.finished.connect(self._on_finished)
 
         event_bus.execution_started.emit()
-        self._process.start(sys.executable, ["-X", "utf8", str(self._tmp_script)])
+        self._process.start(sys.executable, ["-X", "utf8", "-u", str(self._tmp_script)])
 
         # Safety timeout
         from PyQt5.QtCore import QTimer
