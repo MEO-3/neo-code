@@ -10,31 +10,27 @@
 #
 # Options:
 #   --no-desktop   Skip .desktop file and icon installation
-#   --no-venv      Install into system Python instead of a virtualenv
 #   --uninstall    Remove NEO Code installation
 # ==============================================================================
 set -euo pipefail
 
 # -- Configuration ------------------------------------------------------------
 APP_NAME="neo-code"
-INSTALL_DIR="$HOME/.local/share/neo-code"
-VENV_DIR="$INSTALL_DIR/venv"
+DISPLAY_NAME="NEO Code"
 BIN_LINK="$HOME/.local/bin/neo-code"
 DESKTOP_FILE="$HOME/.local/share/applications/neo-code.desktop"
 ICON_DIR="$HOME/.local/share/icons/hicolor/128x128/apps"
 ICON_FILE="$ICON_DIR/neo-code.png"
 PYPI_PACKAGE="neo-code"
-NON_QT_DEPS=("jedi>=0.19.0" "pyflakes>=3.2.0")
+GITHUB_REPO="https://github.com/MEO-3/neo-code.git"
 
 # -- Parse arguments -----------------------------------------------------------
 SKIP_DESKTOP=false
-USE_VENV=false
 UNINSTALL=false
 
 for arg in "$@"; do
     case "$arg" in
         --no-desktop) SKIP_DESKTOP=true ;;
-        --no-venv)    USE_VENV=false ;;
         --uninstall)  UNINSTALL=true ;;
         *)            echo "Unknown option: $arg"; exit 1 ;;
     esac
@@ -62,14 +58,25 @@ detect_arch() {
     esac
 }
 
+# pip install wrapper that adds --break-system-packages when needed
+pip_install() {
+    local bsp=""
+    if python3 -m pip install --help 2>&1 | grep -q "break-system-packages"; then
+        bsp="--break-system-packages"
+    fi
+    python3 -m pip install $bsp "$@"
+}
+
 # -- Uninstall -----------------------------------------------------------------
 do_uninstall() {
-    info "Uninstalling NEO Code..."
+    info "Uninstalling $DISPLAY_NAME..."
 
-    if [ -d "$VENV_DIR" ]; then
-        rm -rf "$VENV_DIR"
-        info "Removed virtualenv: $VENV_DIR"
+    # Remove pip-installed package
+    local bsp=""
+    if python3 -m pip install --help 2>&1 | grep -q "break-system-packages"; then
+        bsp="--break-system-packages"
     fi
+    python3 -m pip uninstall -y $bsp "$PYPI_PACKAGE" 2>/dev/null || true
 
     if [ -L "$BIN_LINK" ]; then
         rm -f "$BIN_LINK"
@@ -87,10 +94,7 @@ do_uninstall() {
         info "Removed icon: $ICON_FILE"
     fi
 
-    # Clean up install dir if empty
-    rmdir "$INSTALL_DIR" 2>/dev/null || true
-
-    info "NEO Code has been uninstalled."
+    info "$DISPLAY_NAME has been uninstalled."
     exit 0
 }
 
@@ -114,23 +118,18 @@ if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR"
 fi
 info "Python $PYTHON_VERSION found."
 
-# -- Step 1: Install system dependencies (ARM) --------------------------------
+# -- Step 1: Install system dependencies --------------------------------------
 install_system_deps() {
     if [ "$ARCH" = "arm" ]; then
-        info "ARM detected — installing PyQt5 via apt (avoids building from source)..."
+        info "ARM detected — installing system dependencies..."
         sudo apt-get update -qq
         sudo apt-get install -y -qq \
             python3-pyqt5 \
-            python3-venv \
-            python3-pip
+            python3-pip \
+            git \
+            2>/dev/null || true
     elif [ "$ARCH" = "x86" ]; then
         info "x86 detected — PyQt5 will be installed via pip."
-        # Ensure venv and pip are available
-        if ! python3 -m venv --help &>/dev/null; then
-            info "Installing python3-venv..."
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq python3-venv
-        fi
     else
         warn "Unknown architecture '$(uname -m)'. Proceeding with pip-based install."
     fi
@@ -138,75 +137,59 @@ install_system_deps() {
 
 install_system_deps
 
-# -- Step 2: Create virtualenv ------------------------------------------------
-install_in_venv() {
-    mkdir -p "$INSTALL_DIR"
+# -- Step 2: Install package --------------------------------------------------
+info "Installing $DISPLAY_NAME..."
 
-    if [ "$ARCH" = "arm" ]; then
-        # Use --system-site-packages so the venv can access apt-installed PyQt5
-        info "Creating virtualenv with system-site-packages (for apt PyQt5)..."
-        python3 -m venv --system-site-packages "$VENV_DIR"
-    else
-        info "Creating isolated virtualenv..."
-        python3 -m venv "$VENV_DIR"
+if [ "$ARCH" = "arm" ]; then
+    # ARM: avoid rebuilding PyQt5 from source — use system apt package
+    info "ARM detected — installing without PyQt5 dependency (using system PyQt5)..."
+    if ! pip_install --no-deps --quiet "$PYPI_PACKAGE" 2>&1; then
+        info "PyPI install failed. Installing from GitHub source..."
+        require_cmd git
+        pip_install --no-deps "git+${GITHUB_REPO}"
     fi
-
-    # Upgrade pip inside venv
-    "$VENV_DIR/bin/pip" install --upgrade pip --quiet
-
-    if [ "$ARCH" = "arm" ]; then
-        # Install non-Qt dependencies first
-        info "Installing Python dependencies (excluding PyQt5)..."
-        "$VENV_DIR/bin/pip" install --quiet "${NON_QT_DEPS[@]}"
-        # Install neo-code without pulling in PyQt5 from pip
-        info "Installing NEO Code (--no-deps to skip PyQt5 rebuild)..."
-        "$VENV_DIR/bin/pip" install --quiet --no-deps "$PYPI_PACKAGE"
-    else
-        # On x86, pip wheel for PyQt5 is available — install everything normally
-        info "Installing NEO Code and all dependencies..."
-        "$VENV_DIR/bin/pip" install --quiet "$PYPI_PACKAGE"
+    # Install non-Qt dependencies separately
+    info "Installing Python dependencies (excluding PyQt5)..."
+    pip_install --quiet "jedi>=0.19.0" "pyflakes>=3.2.0" "thingbot-telemetrix"
+    # Ensure PyQt5 is available (system packages or pip fallback)
+    if ! python3 -c "import PyQt5" 2>/dev/null; then
+        info "Installing PyQt5 via pip (this may take a while on ARM)..."
+        pip_install "PyQt5>=5.15"
     fi
-
-    # Create bin symlink
-    mkdir -p "$(dirname "$BIN_LINK")"
-    ln -sf "$VENV_DIR/bin/neo-code" "$BIN_LINK"
-    info "Linked $BIN_LINK -> $VENV_DIR/bin/neo-code"
-}
-
-install_without_venv() {
-    local pip_args=()
-    # On modern Debian/Ubuntu, --break-system-packages may be needed
-    if python3 -m pip install --help 2>&1 | grep -q "break-system-packages"; then
-        pip_args+=(--break-system-packages)
-    fi
-
-    if [ "$ARCH" = "arm" ]; then
-        info "Installing Python dependencies (excluding PyQt5)..."
-        python3 -m pip install "${pip_args[@]}" --quiet "${NON_QT_DEPS[@]}"
-        info "Installing NEO Code (--no-deps to skip PyQt5 rebuild)..."
-        python3 -m pip install "${pip_args[@]}" --quiet --no-deps "$PYPI_PACKAGE"
-    else
-        info "Installing NEO Code and all dependencies..."
-        python3 -m pip install "${pip_args[@]}" --quiet "$PYPI_PACKAGE"
-    fi
-}
-
-if [ "$USE_VENV" = true ]; then
-    install_in_venv
 else
-    install_without_venv
+    # x86: PyQt5 wheels available, normal install
+    if pip_install --quiet "$PYPI_PACKAGE" 2>&1; then
+        info "Installed from PyPI."
+    else
+        info "PyPI install failed. Installing from GitHub source..."
+        require_cmd git
+        pip_install "git+${GITHUB_REPO}"
+    fi
 fi
 
 # -- Step 3: Verify installation -----------------------------------------------
-if [ "$USE_VENV" = true ]; then
-    NEO_BIN="$VENV_DIR/bin/neo-code"
-else
+# pip installs scripts to ~/.local/bin on Linux
+NEO_BIN="$(python3 -c "
+import sysconfig, os
+scripts = sysconfig.get_path('scripts', 'posix_user')
+print(os.path.join(scripts, 'neo-code'))
+" 2>/dev/null || echo "$HOME/.local/bin/neo-code")"
+
+if [ ! -f "$NEO_BIN" ]; then
+    # Also check if it ended up on the system path
     NEO_BIN="$(command -v neo-code 2>/dev/null || true)"
 fi
 
-if [ -z "$NEO_BIN" ] || [ ! -x "$NEO_BIN" ]; then
-    error "Installation verification failed — 'neo-code' binary not found."
+if [ -z "$NEO_BIN" ] || [ ! -f "$NEO_BIN" ]; then
+    error "Installation failed — 'neo-code' binary not found."
+    error "Check the output above for errors."
     exit 1
+fi
+
+# Ensure symlink in ~/.local/bin
+mkdir -p "$(dirname "$BIN_LINK")"
+if [ "$NEO_BIN" != "$BIN_LINK" ]; then
+    ln -sf "$NEO_BIN" "$BIN_LINK"
 fi
 info "Verified: $NEO_BIN"
 
@@ -217,13 +200,13 @@ install_desktop_entry() {
         return
     fi
 
-    local exec_path="$NEO_BIN"
-
-    # Install icon if available in the package
+    local exec_path="$BIN_LINK"
     local icon_name="neo-code"
+
+    # Try to find icon from installed package
     local pkg_icon
     pkg_icon="$(python3 -c "
-import importlib.resources, pathlib, sys
+import importlib.resources, sys
 try:
     ref = importlib.resources.files('neo_code') / 'resources' / 'neo-code.png'
     with importlib.resources.as_file(ref) as p:
@@ -239,7 +222,6 @@ except Exception:
         info "Installed icon: $ICON_FILE"
     fi
 
-    # Write .desktop file
     mkdir -p "$(dirname "$DESKTOP_FILE")"
     cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
@@ -288,13 +270,10 @@ ensure_path
 # -- Done ----------------------------------------------------------------------
 echo ""
 info "=========================================="
-info "  NEO Code installed successfully!"
+info "  $DISPLAY_NAME installed successfully!"
 info "=========================================="
 echo ""
 echo "  Run:  neo-code"
 echo ""
-if [ "$USE_VENV" = true ]; then
-    echo "  Installed in: $VENV_DIR"
-fi
-echo "  Uninstall:    bash $0 --uninstall"
+echo "  Uninstall:  curl -sSL https://raw.githubusercontent.com/MEO-3/neo-code/main/scripts/install_on_neo.sh | bash -s -- --uninstall"
 echo ""
